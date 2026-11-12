@@ -74,7 +74,8 @@ final class ClipboardStore {
                 source_app TEXT NOT NULL,
                 created_at REAL NOT NULL,
                 pinned INTEGER NOT NULL DEFAULT 0,
-                fingerprint TEXT NOT NULL UNIQUE
+                fingerprint TEXT NOT NULL UNIQUE,
+                collection TEXT
             );
             """)
         try execute("CREATE INDEX IF NOT EXISTS clips_recent ON clips(pinned DESC, created_at DESC);")
@@ -107,6 +108,11 @@ final class ClipboardStore {
             try execute("INSERT INTO clips_fts(clips_fts) VALUES('rebuild');")
             try execute("PRAGMA user_version=1;")
         }
+        if try !hasColumn(named: "collection", in: "clips") {
+            try execute("ALTER TABLE clips ADD COLUMN collection TEXT;")
+        }
+        try execute("CREATE INDEX IF NOT EXISTS clips_collection ON clips(collection, created_at DESC);")
+        try execute("PRAGMA user_version=2;")
         try prune()
     }
 
@@ -151,10 +157,10 @@ final class ClipboardStore {
         }
     }
 
-    func items(search: String, pinnedOnly: Bool = false) throws -> [ClipItem] {
+    func items(search: String, pinnedOnly: Bool = false, collection: String? = nil) throws -> [ClipItem] {
         var sql = """
             SELECT id, kind, preview, body, asset_filename, file_path,
-                   source_app, created_at, pinned, fingerprint
+                   source_app, created_at, pinned, fingerprint, collection
             FROM clips WHERE 1=1
             """
         let terms = search.split(whereSeparator: { $0.isWhitespace }).prefix(8)
@@ -165,11 +171,13 @@ final class ClipboardStore {
             sql += " AND rowid IN (SELECT rowid FROM clips_fts WHERE clips_fts MATCH ?)"
         }
         if pinnedOnly { sql += " AND pinned=1" }
+        if collection != nil { sql += " AND collection=?" }
         sql += " ORDER BY pinned DESC, created_at DESC LIMIT 500;"
 
         let stmt = try prepare(sql)
         defer { sqlite3_finalize(stmt) }
         if !query.isEmpty { bind(query, to: 1, in: stmt) }
+        if let collection { bind(collection, to: query.isEmpty ? 1 : 2, in: stmt) }
 
         var found: [ClipItem] = []
         while true {
@@ -195,10 +203,41 @@ final class ClipboardStore {
                 sourceApp: source,
                 createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 7)),
                 pinned: sqlite3_column_int(stmt, 8) != 0,
-                fingerprint: fingerprint
+                fingerprint: fingerprint,
+                collection: columnText(stmt, 10)
             ))
         }
         return found
+    }
+
+    func collectionNames() throws -> [String] {
+        let stmt = try prepare("""
+            SELECT DISTINCT collection FROM clips
+            WHERE collection IS NOT NULL AND length(trim(collection)) > 0
+            ORDER BY collection COLLATE NOCASE;
+            """)
+        defer { sqlite3_finalize(stmt) }
+        var names: [String] = []
+        while true {
+            let status = sqlite3_step(stmt)
+            if status == SQLITE_DONE { return names }
+            guard status == SQLITE_ROW else {
+                throw ClipboardStoreError.database(String(cString: sqlite3_errmsg(database)))
+            }
+            if let name = columnText(stmt, 0) { names.append(name) }
+        }
+    }
+
+    func setCollection(_ name: String?, id: String) throws {
+        let cleaned = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (cleaned?.count ?? 0) <= 60 else {
+            throw ClipboardStoreError.database("Collection name must be 60 characters or fewer.")
+        }
+        let stmt = try prepare("UPDATE clips SET collection=? WHERE id=?;")
+        defer { sqlite3_finalize(stmt) }
+        bind(cleaned?.isEmpty == true ? nil : cleaned, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        try stepDone(stmt)
     }
 
     func setPinned(_ pinned: Bool, id: String) throws {
@@ -263,6 +302,20 @@ final class ClipboardStore {
         )
         for url in files where url.pathExtension.lowercased() == "png" && !active.contains(url.lastPathComponent) {
             try FileManager.default.removeItem(at: url)
+        }
+    }
+
+    private func hasColumn(named name: String, in table: String) throws -> Bool {
+        // The table identifier is a fixed string defined in application code.
+        let stmt = try prepare("PRAGMA table_info(\(table));")
+        defer { sqlite3_finalize(stmt) }
+        while true {
+            let status = sqlite3_step(stmt)
+            if status == SQLITE_DONE { return false }
+            guard status == SQLITE_ROW else {
+                throw ClipboardStoreError.database(String(cString: sqlite3_errmsg(database)))
+            }
+            if columnText(stmt, 1) == name { return true }
         }
     }
 

@@ -9,6 +9,8 @@ final class ClipboardModel: ObservableObject {
     @Published var searchText = "" { didSet { reload() } }
     @Published var panelPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
+    @Published var selectedCollection: String? { didSet { reload() } }
+    @Published private(set) var collections: [String] = []
     @Published private(set) var isPaused: Bool
     @Published var message: String?
     @Published var captureImages: Bool {
@@ -71,7 +73,12 @@ final class ClipboardModel: ObservableObject {
     func reload() {
         guard let store else { return }
         do {
-            clips = try store.items(search: searchText, pinnedOnly: pinnedOnly)
+            clips = try store.items(
+                search: searchText,
+                pinnedOnly: pinnedOnly,
+                collection: selectedCollection
+            )
+            collections = try store.collectionNames()
         } catch {
             message = error.localizedDescription
         }
@@ -86,6 +93,15 @@ final class ClipboardModel: ObservableObject {
     func enforceRetention() {
         do {
             try store?.prune()
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    func move(_ item: ClipItem, toCollection name: String?) {
+        do {
+            try store?.setCollection(name, id: item.id)
             reload()
         } catch {
             message = error.localizedDescription

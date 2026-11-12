@@ -45,4 +45,22 @@ final class ClipboardStoreTests: XCTestCase {
         try store.delete(id: items[0].id)
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
+
+    func testCollectionsPersistAndFilter() throws {
+        let (store, root) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try store.save(ClipPayload(kind: .text, preview: "Alpha", body: "Alpha"), sourceApp: "Notes")
+        try store.save(ClipPayload(kind: .text, preview: "Beta", body: "Beta"), sourceApp: "Notes")
+        let all = try store.items(search: "")
+        XCTAssertEqual(all.count, 2)
+        guard let alpha = all.first(where: { $0.preview == "Alpha" }) else {
+            XCTFail("Missing Alpha")
+            return
+        }
+        try store.setCollection("Work", id: alpha.id)
+        XCTAssertEqual(try store.collectionNames(), ["Work"])
+        XCTAssertEqual(try store.items(search: "", collection: "Work").map(\.preview), ["Alpha"])
+        try store.setCollection(nil, id: alpha.id)
+        XCTAssertTrue(try store.collectionNames().isEmpty)
+    }
 }

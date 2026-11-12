@@ -30,6 +30,7 @@ struct ClipItem: Identifiable, Equatable {
     let createdAt: Date
     let pinned: Bool
     let fingerprint: String
+    let collection: String?
 }
 
 struct ClipPayload {
