@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ApplicationServices
 
 struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
@@ -271,6 +272,7 @@ private struct ClipCard: View {
                    let image = NSImage(contentsOf: assetURL) {
                     Image(nsImage: image)
                         .resizable()
+                        .accessibilityLabel("Copied image preview")
                         .scaledToFit()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -319,6 +321,7 @@ private struct ClipCard: View {
                 } label: {
                     Image(systemName: "ellipsis")
                 }
+                .accessibilityLabel("More actions for \(item.preview)")
                 .menuStyle(.borderlessButton)
                 .frame(width: 26)
             }
@@ -348,6 +351,12 @@ private extension View {
 struct ClipboardSettingsView: View {
     @ObservedObject var model: ClipboardModel
 
+    private var runningApplications: [NSRunningApplication] {
+        NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != nil }
+            .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
+    }
+
     var body: some View {
         Form {
             Section("Monitoring and Privacy") {
@@ -360,6 +369,17 @@ struct ClipboardSettingsView: View {
                     .foregroundStyle(.secondary)
                 Text("Ignore these app bundle IDs (one per line):")
                     .font(.callout.weight(.medium))
+                Menu("Choose a Running App to Ignore") {
+                    ForEach(runningApplications, id: \.processIdentifier) { application in
+                        Button(application.localizedName ?? application.bundleIdentifier ?? "App") {
+                            guard let identifier = application.bundleIdentifier else { return }
+                            let values = ClipboardPrivacy.normalizedBundleIDs(
+                                from: model.excludedAppsText + "\n" + identifier
+                            )
+                            model.excludedAppsText = values.joined(separator: "\n")
+                        }
+                    }
+                }
                 TextEditor(text: $model.excludedAppsText)
                     .font(.system(.caption, design: .monospaced))
                     .frame(height: 88)
@@ -392,6 +412,12 @@ struct ClipboardSettingsView: View {
                 Text("Automatic paste requires macOS Accessibility permission; copying does not.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Button("Request Accessibility Permission") {
+                    let options: NSDictionary = [
+                        kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+                    ]
+                    _ = AXIsProcessTrustedWithOptions(options)
+                }
             }
         }
         .formStyle(.grouped)
