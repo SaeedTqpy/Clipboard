@@ -9,8 +9,9 @@ final class ClipboardModel: ObservableObject {
     @Published var searchText = "" { didSet { reload() } }
     @Published var panelPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
-    @Published var selectedCollection: String? { didSet { reload() } }
+    @Published var selectedCollection: String? = nil { didSet { reload() } }
     @Published private(set) var collections: [String] = []
+    @Published private(set) var pasteStack: [ClipItem] = []
     @Published private(set) var isPaused: Bool
     @Published var message: String?
     @Published var captureImages: Bool {
@@ -102,6 +103,24 @@ final class ClipboardModel: ObservableObject {
         }
     }
 
+    func addToPasteStack(_ item: ClipItem) {
+        guard pasteStack.count < 100 else {
+            message = "Paste Stack is full (100 items)."
+            return
+        }
+        pasteStack.append(item)
+    }
+
+    func clearPasteStack() {
+        pasteStack.removeAll()
+    }
+
+    func completePasteStackItem(id: String) {
+        if pasteStack.first?.id == id {
+            pasteStack.removeFirst()
+        }
+    }
+
     func move(_ item: ClipItem, toCollection name: String?) {
         do {
             try store?.setCollection(name, id: item.id)
@@ -123,6 +142,7 @@ final class ClipboardModel: ObservableObject {
     func delete(_ item: ClipItem) {
         do {
             try store?.delete(id: item.id)
+            pasteStack.removeAll { $0.id == item.id }
             reload()
         } catch {
             message = error.localizedDescription
@@ -132,6 +152,8 @@ final class ClipboardModel: ObservableObject {
     func clearHistory() {
         do {
             try store?.clearAll()
+            pasteStack.removeAll()
+            selectedCollection = nil
             reload()
             message = "History cleared."
         } catch {

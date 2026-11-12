@@ -5,6 +5,7 @@ struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
     let onDismiss: () -> Void
     let onPaste: (ClipItem) -> Void
+    let onPasteNext: () -> Void
 
     @FocusState private var searchFocused: Bool
     @State private var showingSettings = false
@@ -125,6 +126,7 @@ struct ClipboardPanelView: View {
                                 onCopy: { _ = model.copy(item) },
                                 onPaste: { onPaste(item) },
                                 onPin: { model.togglePinned(item) },
+                                onQueue: { model.addToPasteStack(item) },
                                 onDelete: { model.delete(item) },
                                 collections: model.collections,
                                 onMove: { name in model.move(item, toCollection: name) },
@@ -146,7 +148,19 @@ struct ClipboardPanelView: View {
                 Spacer()
                 Text("\(model.clips.count) clips")
                 Spacer()
-                Text("Stored on this Mac")
+                if !model.pasteStack.isEmpty {
+                    Button {
+                        onPasteNext()
+                    } label: {
+                        Label("Paste Next (\(model.pasteStack.count))", systemImage: "square.stack")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    Button("Clear Stack") { model.clearPasteStack() }
+                        .buttonStyle(.link)
+                } else {
+                    Text("Stored on this Mac")
+                }
             }
             .font(.system(size: 10, weight: .medium))
             .foregroundStyle(.tertiary)
@@ -210,6 +224,7 @@ private struct ClipCard: View {
     let onCopy: () -> Void
     let onPaste: () -> Void
     let onPin: () -> Void
+    let onQueue: () -> Void
     let onDelete: () -> Void
     let collections: [String]
     let onMove: (String?) -> Void
@@ -270,6 +285,8 @@ private struct ClipCard: View {
                     .tint(.mint)
                 Spacer(minLength: 0)
                 Menu {
+                    Button("Add to Paste Stack", action: onQueue)
+                    Divider()
                     Button(item.pinned ? "Unpin" : "Pin", action: onPin)
                     Menu("Move to Collection") {
                         Button("Unassigned") { onMove(nil) }

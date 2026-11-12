@@ -92,7 +92,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel.contentView = NSHostingView(rootView: ClipboardPanelView(
             model: model,
             onDismiss: { [weak self] in self?.hidePanel() },
-            onPaste: { [weak self] item in self?.paste(item) }
+            onPaste: { [weak self] item in self?.paste(item) },
+            onPasteNext: { [weak self] in self?.pasteStackNext() }
         ))
         self.panel = panel
     }
@@ -130,7 +131,14 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel?.orderOut(nil)
     }
 
-    private func paste(_ item: ClipItem) {
+    private func pasteStackNext() {
+        guard let item = model.pasteStack.first else { return }
+        paste(item, onPosted: { [weak self] in
+            self?.model.completePasteStackItem(id: item.id)
+        })
+    }
+
+    private func paste(_ item: ClipItem, onPosted: (() -> Void)? = nil) {
         guard model.copy(item) else { return }
         guard AXIsProcessTrusted() else {
             model.message = "Copied. To paste automatically, enable Clipboard under System Settings → Privacy & Security → Accessibility."
@@ -162,6 +170,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             up.flags = .maskCommand
             down.post(tap: .cghidEventTap)
             up.post(tap: .cghidEventTap)
+            onPosted?()
         }
     }
 
