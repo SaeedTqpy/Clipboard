@@ -219,7 +219,7 @@ final class ClipboardStore {
     private func execute(_ sql: String) throws {
         var errorPointer: UnsafeMutablePointer<CChar>?
         guard sqlite3_exec(database, sql, nil, nil, &errorPointer) == SQLITE_OK else {
-            let message = errorPointer.map(String.init(cString:)) ?? "Unknown SQLite error"
+            let message = errorPointer.map { String(cString: $0) } ?? "Unknown SQLite error"
             sqlite3_free(errorPointer)
             throw ClipboardStoreError.database(message)
         }
