@@ -18,15 +18,33 @@ final class ClipboardStore {
     let assetsDirectory: URL
 
     private let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    private var writesSinceMaintenance = 0
 
-    init() throws {
-        guard let root = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask
-        ).first else { throw ClipboardStoreError.missingSupportDirectory }
+    /// Tests provide an isolated temporary root; production uses Application Support.
+    init(directoryOverride: URL? = nil) throws {
+        let root: URL
+        if let directoryOverride {
+            root = directoryOverride
+        } else {
+            guard let defaultRoot = FileManager.default.urls(
+                for: .applicationSupportDirectory, in: .userDomainMask
+            ).first else { throw ClipboardStoreError.missingSupportDirectory }
+            root = defaultRoot
+        }
 
         let folder = root.appendingPathComponent("Clipboard", isDirectory: true)
         assetsDirectory = folder.appendingPathComponent("Assets", isDirectory: true)
-        try FileManager.default.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: assetsDirectory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        // Protect against a directory created by a previous application version.
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700], ofItemAtPath: folder.path
+        )
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700], ofItemAtPath: assetsDirectory.path
+        )
 
         let dbURL = folder.appendingPathComponent("history.sqlite3")
         var handle: OpaquePointer?
@@ -39,6 +57,9 @@ final class ClipboardStore {
             throw ClipboardStoreError.database("Unable to open history database (code \(result))")
         }
         database = handle
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o600], ofItemAtPath: dbURL.path
+        )
 
         try execute("PRAGMA journal_mode=WAL;")
         try execute("PRAGMA busy_timeout=3000;")
@@ -81,6 +102,12 @@ final class ClipboardStore {
                 VALUES(new.rowid, new.preview, new.body);
             END;
             """)
+        // Versioning also repairs the FTS index of databases created before triggers.
+        if try schemaVersion() == 0 {
+            try execute("INSERT INTO clips_fts(clips_fts) VALUES('rebuild');")
+            try execute("PRAGMA user_version=1;")
+        }
+        try prune()
     }
 
     deinit { sqlite3_close(database) }
@@ -88,7 +115,11 @@ final class ClipboardStore {
     func save(_ payload: ClipPayload, sourceApp: String) throws {
         let filename = payload.imagePNG == nil ? nil : payload.fingerprint + ".png"
         if let data = payload.imagePNG, let filename {
-            try data.write(to: assetsDirectory.appendingPathComponent(filename), options: .atomic)
+            let fileURL = assetsDirectory.appendingPathComponent(filename)
+            try data.write(to: fileURL, options: .atomic)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: fileURL.path
+            )
         }
 
         let sql = """
@@ -112,7 +143,12 @@ final class ClipboardStore {
         sqlite3_bind_double(stmt, 8, Date().timeIntervalSince1970)
         bind(payload.fingerprint, to: 9, in: stmt)
         try stepDone(stmt)
-        try prune()
+        writesSinceMaintenance += 1
+        // A full asset directory scan on every copied item scales poorly.
+        if writesSinceMaintenance >= 20 {
+            try prune()
+            writesSinceMaintenance = 0
+        }
     }
 
     func items(search: String, pinnedOnly: Bool = false) throws -> [ClipItem] {
@@ -121,7 +157,7 @@ final class ClipboardStore {
                    source_app, created_at, pinned, fingerprint
             FROM clips WHERE 1=1
             """
-        let terms = search.split(whereSeparator: { $0.isWhitespace })
+        let terms = search.split(whereSeparator: { $0.isWhitespace }).prefix(8)
         let query = terms.map {
             "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"*"
         }.joined(separator: " AND ")
@@ -136,7 +172,12 @@ final class ClipboardStore {
         if !query.isEmpty { bind(query, to: 1, in: stmt) }
 
         var found: [ClipItem] = []
-        while sqlite3_step(stmt) == SQLITE_ROW {
+        while true {
+            let status = sqlite3_step(stmt)
+            if status == SQLITE_DONE { break }
+            guard status == SQLITE_ROW else {
+                throw ClipboardStoreError.database(String(cString: sqlite3_errmsg(database)))
+            }
             guard let id = columnText(stmt, 0),
                   let rawKind = columnText(stmt, 1),
                   let kind = ClipKind(rawValue: rawKind),
@@ -182,22 +223,31 @@ final class ClipboardStore {
     }
 
     func assetURL(for item: ClipItem) -> URL? {
-        guard let filename = item.assetFilename else { return nil }
+        guard let filename = item.assetFilename,
+              filename.range(of: #"^[a-f0-9]{64}\.png$"#, options: .regularExpression) != nil
+        else { return nil }
         return assetsDirectory.appendingPathComponent(filename)
     }
 
-    private func prune() throws {
+    func prune() throws {
         // Pinned clips are never removed by the retention policy.
-        let expiry = Date().addingTimeInterval(-30 * 24 * 60 * 60).timeIntervalSince1970
-        let stmt = try prepare("DELETE FROM clips WHERE pinned=0 AND created_at < ?;")
-        sqlite3_bind_double(stmt, 1, expiry)
-        do { try stepDone(stmt) } catch { sqlite3_finalize(stmt); throw error }
-        sqlite3_finalize(stmt)
-        try execute("""
+        let expiry = Date().addingTimeInterval(
+            -Double(ClipboardPreferences.retentionDays) * 86_400
+        ).timeIntervalSince1970
+        let expired = try prepare("DELETE FROM clips WHERE pinned=0 AND created_at < ?;")
+        sqlite3_bind_double(expired, 1, expiry)
+        do { try stepDone(expired) } catch { sqlite3_finalize(expired); throw error }
+        sqlite3_finalize(expired)
+
+        let capped = try prepare("""
             DELETE FROM clips WHERE pinned=0 AND id NOT IN (
-                SELECT id FROM clips WHERE pinned=0 ORDER BY created_at DESC LIMIT 1000
+                SELECT id FROM clips WHERE pinned=0 ORDER BY created_at DESC LIMIT ?
             );
             """)
+        sqlite3_bind_int(capped, 1, Int32(ClipboardPreferences.retentionCount))
+        do { try stepDone(capped) } catch { sqlite3_finalize(capped); throw error }
+        sqlite3_finalize(capped)
+
         try removeUnreferencedAssets()
     }
 
@@ -214,6 +264,15 @@ final class ClipboardStore {
         for url in files where url.pathExtension.lowercased() == "png" && !active.contains(url.lastPathComponent) {
             try FileManager.default.removeItem(at: url)
         }
+    }
+
+    private func schemaVersion() throws -> Int32 {
+        let stmt = try prepare("PRAGMA user_version;")
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else {
+            throw ClipboardStoreError.database("Unable to read schema version")
+        }
+        return sqlite3_column_int(stmt, 0)
     }
 
     private func execute(_ sql: String) throws {
