@@ -1,10 +1,13 @@
 name: Clipboard macOS
 
+# Intentionally manual: conserve GitHub Actions minutes.
+# Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: clipboard-manual-build
+  cancel-in-progress: true
 
 permissions:
   contents: read
