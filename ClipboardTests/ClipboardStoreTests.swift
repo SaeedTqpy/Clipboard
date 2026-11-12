@@ -73,4 +73,19 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(try store.items(search: "", kind: .text).count, 1)
         XCTAssertEqual(try store.items(search: "example", kind: .text).count, 0)
     }
+
+    func testImageBudgetPrunesUnpinnedImageAssets() throws {
+        let (store, root) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try store.save(ClipPayload(
+            kind: .image, preview: "Test Image",
+            imagePNG: Data([0x89, 0x50, 0x4e, 0x47])
+        ), sourceApp: "Preview")
+        XCTAssertEqual(try store.items(search: "").count, 1)
+        try store.prune(maxUnpinnedImageBytes: 1)
+        XCTAssertTrue(try store.items(search: "").isEmpty)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(
+            at: store.assetsDirectory, includingPropertiesForKeys: nil
+        ).isEmpty)
+    }
 }

@@ -284,7 +284,7 @@ final class ClipboardStore {
         return assetsDirectory.appendingPathComponent(filename)
     }
 
-    func prune() throws {
+    func prune(maxUnpinnedImageBytes: Int64 = 512 * 1024 * 1024) throws {
         // Pinned clips are never removed by the retention policy.
         let expiry = Date().addingTimeInterval(
             -Double(ClipboardPreferences.retentionDays) * 86_400
@@ -303,7 +303,49 @@ final class ClipboardStore {
         do { try stepDone(capped) } catch { sqlite3_finalize(capped); throw error }
         sqlite3_finalize(capped)
 
+        try trimImageAssets(to: maxUnpinnedImageBytes)
         try removeUnreferencedAssets()
+    }
+
+    private func trimImageAssets(to limit: Int64) throws {
+        var candidates: [(id: String, bytes: Int64)] = []
+        var totalBytes: Int64 = 0
+        do {
+            let stmt = try prepare("""
+                SELECT id, asset_filename FROM clips
+                WHERE pinned=0 AND asset_filename IS NOT NULL
+                ORDER BY created_at ASC;
+                """)
+            defer { sqlite3_finalize(stmt) }
+            while true {
+                let status = sqlite3_step(stmt)
+                if status == SQLITE_DONE { break }
+                guard status == SQLITE_ROW else {
+                    throw ClipboardStoreError.database(String(cString: sqlite3_errmsg(database)))
+                }
+                guard let id = columnText(stmt, 0),
+                      let filename = columnText(stmt, 1),
+                      filename.range(
+                          of: #"^[a-f0-9]{64}\.png$"#, options: .regularExpression
+                      ) != nil else { continue }
+                let url = assetsDirectory.appendingPathComponent(filename)
+                let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+                let bytes = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
+                totalBytes += bytes
+                candidates.append((id: id, bytes: bytes))
+            }
+        }
+        guard totalBytes > limit else { return }
+        // Remove the oldest unpinned images until back under budget.
+        let stmt = try prepare("DELETE FROM clips WHERE id=? AND pinned=0;")
+        defer { sqlite3_finalize(stmt) }
+        for item in candidates where totalBytes > limit {
+            sqlite3_reset(stmt)
+            sqlite3_clear_bindings(stmt)
+            bind(item.id, to: 1, in: stmt)
+            try stepDone(stmt)
+            totalBytes -= item.bytes
+        }
     }
 
     private func removeUnreferencedAssets() throws {
