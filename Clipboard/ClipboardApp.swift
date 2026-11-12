@@ -40,6 +40,9 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         model.onClipboardWrite = { [weak monitor] in
             monitor?.acknowledgeOwnWrite()
         }
+        model.onMonitoringChange = { [weak monitor] paused in
+            monitor?.isPaused = paused
+        }
 
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
