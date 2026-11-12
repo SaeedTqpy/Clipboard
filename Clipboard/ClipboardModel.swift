@@ -79,6 +79,9 @@ final class ClipboardModel: ObservableObject {
                 collection: selectedCollection
             )
             collections = try store.collectionNames()
+            if let selectedCollection, !collections.contains(selectedCollection) {
+                self.selectedCollection = nil
+            }
         } catch {
             message = error.localizedDescription
         }

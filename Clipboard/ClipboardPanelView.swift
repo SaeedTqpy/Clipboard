@@ -8,6 +8,9 @@ struct ClipboardPanelView: View {
 
     @FocusState private var searchFocused: Bool
     @State private var showingSettings = false
+    @State private var showingCollectionAlert = false
+    @State private var newCollectionName = ""
+    @State private var newCollectionItem: ClipItem?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -71,6 +74,20 @@ struct ClipboardPanelView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(model.pinnedOnly ? .primary : .secondary)
+                Menu {
+                    Button("All Collections") { model.selectedCollection = nil }
+                    if !model.collections.isEmpty {
+                        Divider()
+                        ForEach(model.collections, id: \.self) { name in
+                            Button(name) { model.selectedCollection = name }
+                        }
+                    }
+                } label: {
+                    Label(model.selectedCollection ?? "Collections", systemImage: "folder")
+                        .lineLimit(1)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(maxWidth: 185)
                 Spacer()
                 Button {
                     model.togglePaused()
@@ -108,7 +125,14 @@ struct ClipboardPanelView: View {
                                 onCopy: { _ = model.copy(item) },
                                 onPaste: { onPaste(item) },
                                 onPin: { model.togglePinned(item) },
-                                onDelete: { model.delete(item) }
+                                onDelete: { model.delete(item) },
+                                collections: model.collections,
+                                onMove: { name in model.move(item, toCollection: name) },
+                                onNewCollection: {
+                                    newCollectionItem = item
+                                    newCollectionName = ""
+                                    showingCollectionAlert = true
+                                }
                             )
                         }
                     }
@@ -165,6 +189,18 @@ struct ClipboardPanelView: View {
         .sheet(isPresented: $showingSettings) {
             ClipboardSettingsView(model: model)
         }
+        .alert("New Collection", isPresented: $showingCollectionAlert) {
+            TextField("Collection name", text: $newCollectionName)
+            Button("Create") {
+                if let newCollectionItem {
+                    model.move(newCollectionItem, toCollection: newCollectionName)
+                }
+                newCollectionItem = nil
+            }
+            Button("Cancel", role: .cancel) { newCollectionItem = nil }
+        } message: {
+            Text("Give this collection a name, up to 60 characters.")
+        }
     }
 }
 
@@ -175,6 +211,9 @@ private struct ClipCard: View {
     let onPaste: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
+    let collections: [String]
+    let onMove: (String?) -> Void
+    let onNewCollection: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -183,6 +222,12 @@ private struct ClipCard: View {
                     .foregroundStyle(.mint)
                 Text(item.kind.title)
                     .fontWeight(.semibold)
+                if let collection = item.collection {
+                    Text(collection)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 if item.pinned {
                     Image(systemName: "pin.fill")
@@ -226,6 +271,17 @@ private struct ClipCard: View {
                 Spacer(minLength: 0)
                 Menu {
                     Button(item.pinned ? "Unpin" : "Pin", action: onPin)
+                    Menu("Move to Collection") {
+                        Button("Unassigned") { onMove(nil) }
+                        if !collections.isEmpty {
+                            Divider()
+                            ForEach(collections, id: \.self) { name in
+                                Button(name) { onMove(name) }
+                            }
+                        }
+                        Divider()
+                        Button("New Collection…", action: onNewCollection)
+                    }
                     Divider()
                     Button("Delete", role: .destructive, action: onDelete)
                 } label: {
