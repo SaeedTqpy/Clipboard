@@ -12,6 +12,7 @@ final class ClipboardModel: ObservableObject {
     @Published var message: String?
 
     var onClipboardWrite: (() -> Void)?
+    var onMonitoringChange: ((Bool) -> Void)?
     private let store: ClipboardStore?
 
     private init() {
@@ -47,6 +48,7 @@ final class ClipboardModel: ObservableObject {
     func togglePaused() {
         isPaused.toggle()
         UserDefaults.standard.set(isPaused, forKey: "clipboard.monitor.paused")
+        onMonitoringChange?(isPaused)
     }
 
     func togglePinned(_ item: ClipItem) {
