@@ -10,12 +10,38 @@ final class ClipboardModel: ObservableObject {
     @Published var pinnedOnly = false { didSet { reload() } }
     @Published private(set) var isPaused: Bool
     @Published var message: String?
+    @Published var captureImages: Bool {
+        didSet { UserDefaults.standard.set(captureImages, forKey: ClipboardPreferences.imagesKey) }
+    }
+    @Published var captureFiles: Bool {
+        didSet { UserDefaults.standard.set(captureFiles, forKey: ClipboardPreferences.filesKey) }
+    }
+    @Published var excludedAppsText: String {
+        didSet { UserDefaults.standard.set(excludedAppsText, forKey: ClipboardPreferences.excludedAppsKey) }
+    }
+    @Published var retentionDays: Int {
+        didSet {
+            UserDefaults.standard.set(retentionDays, forKey: ClipboardPreferences.retentionDaysKey)
+            enforceRetention()
+        }
+    }
+    @Published var retentionCount: Int {
+        didSet {
+            UserDefaults.standard.set(retentionCount, forKey: ClipboardPreferences.retentionCountKey)
+            enforceRetention()
+        }
+    }
 
     var onClipboardWrite: (() -> Void)?
     var onMonitoringChange: ((Bool) -> Void)?
     private let store: ClipboardStore?
 
     private init() {
+        captureImages = ClipboardPreferences.captureImages
+        captureFiles = ClipboardPreferences.captureFiles
+        excludedAppsText = UserDefaults.standard.string(forKey: ClipboardPreferences.excludedAppsKey) ?? ""
+        retentionDays = ClipboardPreferences.retentionDays
+        retentionCount = ClipboardPreferences.retentionCount
         // Explicit opt-in: do not record clipboard history on first launch.
         let preferenceKey = "clipboard.monitor.paused"
         if UserDefaults.standard.object(forKey: preferenceKey) == nil {
@@ -56,6 +82,15 @@ final class ClipboardModel: ObservableObject {
         onMonitoringChange?(isPaused)
     }
 
+    func enforceRetention() {
+        do {
+            try store?.prune()
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
     func togglePinned(_ item: ClipItem) {
         do {
             try store?.setPinned(!item.pinned, id: item.id)
@@ -94,8 +129,17 @@ final class ClipboardModel: ObservableObject {
         case .text, .link:
             success = board.setString(item.body ?? item.preview, forType: .string)
         case .file:
-            if let path = item.filePath {
-                success = board.writeObjects([URL(fileURLWithPath: path) as NSURL])
+            if let stored = item.filePath {
+                let paths = (try? JSONDecoder().decode([String].self, from: Data(stored.utf8))) ?? [stored]
+                let existing = paths.filter {
+                    FileManager.default.fileExists(atPath: $0)
+                }
+                success = !existing.isEmpty && board.writeObjects(
+                    existing.map { URL(fileURLWithPath: $0) as NSURL }
+                )
+                if existing.count != paths.count {
+                    message = "Some copied files were moved or deleted."
+                }
             } else {
                 success = false
             }
