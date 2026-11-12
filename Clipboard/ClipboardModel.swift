@@ -16,7 +16,12 @@ final class ClipboardModel: ObservableObject {
     private let store: ClipboardStore?
 
     private init() {
-        isPaused = UserDefaults.standard.bool(forKey: "clipboard.monitor.paused")
+        // Explicit opt-in: do not record clipboard history on first launch.
+        let preferenceKey = "clipboard.monitor.paused"
+        if UserDefaults.standard.object(forKey: preferenceKey) == nil {
+            UserDefaults.standard.set(true, forKey: preferenceKey)
+        }
+        isPaused = UserDefaults.standard.bool(forKey: preferenceKey)
         do {
             store = try ClipboardStore()
         } catch {
