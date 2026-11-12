@@ -5,7 +5,7 @@
 - SwiftUI/AppKit floating shelf, native Liquid Glass on macOS 26, fallback materials.
 - Menu bar utility, first-launch discovery and fixed ⌘⇧V global shortcut.
 - Text, links, images, single/multi-file clipboard history, deduplication.
-- SQLite/FTS5 indexing, schema versioning, retention maintenance and pinned clips.
+- SQLite/FTS5 indexing, schema versioning, retention maintenance, 512 MiB unpinned image-asset budget, and pinned clips.
 - Collections, kind filters, quick visible-card shortcuts, copy/paste actions.
 - Sequential session-only Paste Stack and conservative destination PID check.
 - Opt-in monitoring, image/file toggles, best-effort sensitive app/type exclusions and app exclusion UI.

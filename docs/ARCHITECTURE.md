@@ -33,7 +33,7 @@ No Electron, browser runtime, Rust bridge, remote backend or sync services are r
 - Application Support/Clipboard/Assets/: SHA-256-named PNGs. Directory permissions are 0700; SQLite DB and PNG files are 0600 where supported.
 - SQLite schema uses PRAGMA user_version; migration to v2 adds collections without dropping existing history.
 - Default retention is 30 days / 1,000 unpinned clips; users may configure 1–365 days and 50–5,000 unpinned entries. Pinned records are exempt.
-- Cleanup runs on startup, on explicit retention changes and periodically after writes. Orphaned PNG files are deleted.
+- Cleanup runs on startup, on explicit retention changes and periodically after writes. Orphaned PNG files are deleted. Unpinned image assets have a **512 MiB combined disk budget**; pinned assets are exempt. SQLite uses secure_delete, and Clear All vacuums/checkpoints the database. This does **not** guarantee forensic erasure from SSDs, system snapshots, or backups.
 - SQLite query conditions are parameterized; FTS search tokens are quoted. The view presents up to 500 results.
 
 ## Privacy and risk register

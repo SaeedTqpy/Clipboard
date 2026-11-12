@@ -63,6 +63,7 @@ final class ClipboardStore {
 
         try execute("PRAGMA journal_mode=WAL;")
         try execute("PRAGMA busy_timeout=3000;")
+        try execute("PRAGMA secure_delete=ON;")
         try execute("""
             CREATE TABLE IF NOT EXISTS clips (
                 id TEXT PRIMARY KEY NOT NULL,
@@ -275,6 +276,10 @@ final class ClipboardStore {
     func clearAll() throws {
         try execute("DELETE FROM clips;")
         try removeUnreferencedAssets()
+        // Reclaim freed SQLite pages and rotate/truncate the current WAL.
+        // SSD wear leveling, system snapshots and backups are outside our control.
+        try execute("VACUUM;")
+        try execute("PRAGMA wal_checkpoint(TRUNCATE);")
     }
 
     func assetURL(for item: ClipItem) -> URL? {
