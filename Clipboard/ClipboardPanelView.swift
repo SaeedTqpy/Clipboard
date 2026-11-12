@@ -190,6 +190,9 @@ struct ClipboardPanelView: View {
         .onChange(of: model.panelPresentationID) { _, _ in
             searchFocused = true
         }
+        .onChange(of: model.settingsPresentationID) { _, _ in
+            showingSettings = true
+        }
         .onKeyPress { press in
             guard press.phase == .down,
                   press.modifiers.contains(.command),

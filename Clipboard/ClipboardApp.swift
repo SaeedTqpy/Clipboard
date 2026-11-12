@@ -57,7 +57,15 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         hotkey = ClipboardGlobalHotkey { [weak self] in
             self?.togglePanel()
         }
+        if hotkey?.isRegistered != true {
+            model.message = "The ⌘⇧V shortcut could not be registered. Another app may be using it. Use the menu bar to open Clipboard."
+        }
         buildPanel()
+        let onboardingKey = "clipboard.hasOpenedOnce"
+        if UserDefaults.standard.object(forKey: onboardingKey) == nil {
+            UserDefaults.standard.set(true, forKey: onboardingKey)
+            DispatchQueue.main.async { [weak self] in self?.showPanel() }
+        }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -69,6 +77,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             keyEquivalent: ""
         ))
         menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Clear All History…", action: #selector(confirmClear), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Clipboard", action: #selector(quit), keyEquivalent: ""))
@@ -99,6 +108,11 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     }
 
     @objc private func openPanel() { showPanel() }
+
+    @objc private func openSettings() {
+        showPanel()
+        model.settingsPresentationID &+= 1
+    }
 
     private func togglePanel() {
         guard let panel else { return }
@@ -195,6 +209,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 private final class ClipboardGlobalHotkey {
     private var hotkeyReference: EventHotKeyRef?
     private var handlerReference: EventHandlerRef?
+    private(set) var isRegistered = false
     private let callback: () -> Void
 
     init(callback: @escaping () -> Void) {
@@ -203,7 +218,7 @@ private final class ClipboardGlobalHotkey {
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
         )
-        InstallEventHandler(
+        let installStatus = InstallEventHandler(
             GetApplicationEventTarget(),
             { _, _, pointer in
                 guard let pointer else { return noErr }
@@ -216,8 +231,9 @@ private final class ClipboardGlobalHotkey {
             Unmanaged.passUnretained(self).toOpaque(),
             &handlerReference
         )
+        guard installStatus == noErr else { return }
         let identifier = EventHotKeyID(signature: 0x434C4950, id: 1)
-        RegisterEventHotKey(
+        let registrationStatus = RegisterEventHotKey(
             UInt32(kVK_ANSI_V),
             UInt32(cmdKey | shiftKey),
             identifier,
@@ -225,6 +241,7 @@ private final class ClipboardGlobalHotkey {
             0,
             &hotkeyReference
         )
+        isRegistered = registrationStatus == noErr
     }
 
     deinit {
