@@ -7,6 +7,7 @@ struct ClipboardPanelView: View {
     let onPaste: (ClipItem) -> Void
 
     @FocusState private var searchFocused: Bool
+    @State private var showingSettings = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -32,6 +33,17 @@ struct ClipboardPanelView: View {
                 .padding(.horizontal, 12)
                 .frame(height: 36)
                 .liquidToolbar()
+
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .liquidToolbar()
+                .help("Privacy and history settings")
 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
@@ -60,9 +72,15 @@ struct ClipboardPanelView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(model.pinnedOnly ? .primary : .secondary)
                 Spacer()
-                Label(model.isPaused ? "Paused" : "Local only", systemImage: model.isPaused ? "pause.circle" : "lock.shield")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                Button {
+                    model.togglePaused()
+                } label: {
+                    Label(model.isPaused ? "Paused · Enable" : "Monitoring On",
+                          systemImage: model.isPaused ? "pause.circle" : "checkmark.shield")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help(model.isPaused ? "Start recording clipboard history" : "Pause clipboard recording")
             }
             .font(.system(size: 12, weight: .semibold))
 
@@ -73,7 +91,9 @@ struct ClipboardPanelView: View {
                         .foregroundStyle(.secondary)
                     Text(model.searchText.isEmpty ? "Your clipboard history will appear here" : "No matching clips")
                         .font(.system(size: 14, weight: .medium))
-                    Text("Copy text, links, images, or files in another app.")
+                    Text(model.isPaused
+                         ? "Monitoring is paused. Enable it above to begin."
+                         : "Copy text, links, images, or files in another app.")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -98,7 +118,7 @@ struct ClipboardPanelView: View {
             }
 
             HStack {
-                Label("⌘⇧V to open", systemImage: "keyboard")
+                Label("⌘⇧V to open · ⌘1…9 to paste", systemImage: "keyboard")
                 Spacer()
                 Text("\(model.clips.count) clips")
                 Spacer()
@@ -121,17 +141,30 @@ struct ClipboardPanelView: View {
             }
         }
         .padding(22)
-        .frame(width: 1050, height: 445)
-        .background {
+        .frame(minWidth: 680, maxWidth: .infinity, minHeight: 445, maxHeight: 445)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.94))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(.white.opacity(0.16), lineWidth: 1)
-                }
+                .strokeBorder(.white.opacity(0.20), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .onExitCommand(perform: onDismiss)
+        .onChange(of: model.panelPresentationID) { _, _ in
+            searchFocused = true
+        }
+        .onKeyPress { press in
+            guard press.phase == .down,
+                  press.modifiers.contains(.command),
+                  let digit = Int(press.characters),
+                  (1...9).contains(digit),
+                  model.clips.indices.contains(digit - 1)
+            else { return .ignored }
+            onPaste(model.clips[digit - 1])
+            return .handled
+        }
+        .sheet(isPresented: $showingSettings) {
+            ClipboardSettingsView(model: model)
+        }
     }
 }
 
@@ -229,17 +262,51 @@ struct ClipboardSettingsView: View {
 
     var body: some View {
         Form {
-            Toggle("Pause clipboard monitoring", isOn: Binding(
-                get: { model.isPaused },
-                set: { _ in model.togglePaused() }
-            ))
-            Text("History is stored only on this Mac. Clipboard excludes concealed and transient pasteboard items and known password-manager apps.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Text("Shortcut: Command + Shift + V")
-            Text("Retention: 30 days and up to 1,000 unpinned clips.")
+            Section("Monitoring and Privacy") {
+                Toggle("Pause clipboard monitoring", isOn: Binding(
+                    get: { model.isPaused },
+                    set: { _ in model.togglePaused() }
+                ))
+                Text("Clipboard history is stored locally, without at-rest encryption. Password-manager and private pasteboard exclusions are best-effort, not a guarantee.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Text("Ignore these app bundle IDs (one per line):")
+                    .font(.callout.weight(.medium))
+                TextEditor(text: $model.excludedAppsText)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(height: 88)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7)
+                            .strokeBorder(.secondary.opacity(0.25))
+                    }
+                Text("Example: com.example.BankingApp. You can find the bundle ID of an installed app in Finder or its Info.plist.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Capture") {
+                Toggle("Save images", isOn: $model.captureImages)
+                Toggle("Save files and file selections", isOn: $model.captureFiles)
+                Text("Copied text and links are always captured while monitoring is on. Image and file capture can be turned off.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Retention") {
+                Stepper("Keep at most \(model.retentionCount) unpinned clips",
+                        value: $model.retentionCount, in: 50...5000, step: 50)
+                Stepper("Delete unpinned clips after \(model.retentionDays) days",
+                        value: $model.retentionDays, in: 1...365)
+                Text("Pinned clips are excluded from automatic cleanup. Updating these controls prunes old unpinned clips immediately.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Shortcuts") {
+                Text("⌘⇧V opens the shelf. ⌘1 through ⌘9 paste a visible clip.")
+                Text("Automatic paste requires macOS Accessibility permission; copying does not.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(20)
-        .frame(width: 520)
+        .formStyle(.grouped)
+        .frame(width: 615, height: 560)
     }
 }

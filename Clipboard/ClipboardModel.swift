@@ -7,6 +7,7 @@ final class ClipboardModel: ObservableObject {
 
     @Published private(set) var clips: [ClipItem] = []
     @Published var searchText = "" { didSet { reload() } }
+    @Published var panelPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
     @Published private(set) var isPaused: Bool
     @Published var message: String?

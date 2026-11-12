@@ -111,13 +111,16 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             previousApp = foreground
         }
         model.searchText = ""
-        if let screen = NSScreen.main ?? NSScreen.screens.first {
+        model.panelPresentationID &+= 1
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
+            ?? NSScreen.main ?? NSScreen.screens.first {
             let available = screen.visibleFrame
-            let origin = NSPoint(
-                x: available.midX - panel.frame.width / 2,
-                y: available.minY + 36
-            )
-            panel.setFrameOrigin(origin)
+            let width = min(1050, max(680, available.width - 24))
+            let x = available.midX - width / 2
+            panel.setFrame(NSRect(
+                x: x, y: available.minY + 24,
+                width: width, height: 445
+            ), display: true)
         }
         panel.orderFrontRegardless()
         panel.makeKey()
@@ -130,12 +133,28 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private func paste(_ item: ClipItem) {
         guard model.copy(item) else { return }
         guard AXIsProcessTrusted() else {
-            model.message = "To paste automatically, allow Clipboard in System Settings → Privacy & Security → Accessibility. The item has been copied."
+            model.message = "Copied. To paste automatically, enable Clipboard under System Settings → Privacy & Security → Accessibility."
+            hidePanel()
+            return
+        }
+        guard let target = previousApp, !target.isTerminated,
+              target.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
+            model.message = "Copied. No previous application is available for automatic paste."
+            hidePanel()
             return
         }
         hidePanel()
-        previousApp?.activate(options: [.activateIgnoringOtherApps])
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+        guard target.activate(options: [.activateIgnoringOtherApps]) else {
+            model.message = "Copied. Could not restore the destination application."
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            // Never synthesize Cmd+V into a different application than the intended target.
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier
+            else {
+                self?.model.message = "Copied. Focus changed before the paste command."
+                return
+            }
             guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0x09, keyDown: true),
                   let up = CGEvent(keyboardEventSource: nil, virtualKey: 0x09, keyDown: false)
             else { return }
