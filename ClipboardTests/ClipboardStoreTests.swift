@@ -63,4 +63,14 @@ final class ClipboardStoreTests: XCTestCase {
         try store.setCollection(nil, id: alpha.id)
         XCTAssertTrue(try store.collectionNames().isEmpty)
     }
+
+    func testFilterByContentKind() throws {
+        let (store, root) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try store.save(ClipPayload(kind: .text, preview: "plain", body: "plain"), sourceApp: "Notes")
+        try store.save(ClipPayload(kind: .link, preview: "https://example.com", body: "https://example.com"), sourceApp: "Safari")
+        XCTAssertEqual(try store.items(search: "", kind: .link).count, 1)
+        XCTAssertEqual(try store.items(search: "", kind: .text).count, 1)
+        XCTAssertEqual(try store.items(search: "example", kind: .text).count, 0)
+    }
 }

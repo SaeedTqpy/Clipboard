@@ -112,6 +112,7 @@ final class ClipboardStore {
             try execute("ALTER TABLE clips ADD COLUMN collection TEXT;")
         }
         try execute("CREATE INDEX IF NOT EXISTS clips_collection ON clips(collection, created_at DESC);")
+        try execute("CREATE INDEX IF NOT EXISTS clips_kind ON clips(kind, created_at DESC);")
         try execute("PRAGMA user_version=2;")
         try prune()
     }
@@ -157,7 +158,12 @@ final class ClipboardStore {
         }
     }
 
-    func items(search: String, pinnedOnly: Bool = false, collection: String? = nil) throws -> [ClipItem] {
+    func items(
+        search: String,
+        pinnedOnly: Bool = false,
+        collection: String? = nil,
+        kind: ClipKind? = nil
+    ) throws -> [ClipItem] {
         var sql = """
             SELECT id, kind, preview, body, asset_filename, file_path,
                    source_app, created_at, pinned, fingerprint, collection
@@ -167,17 +173,27 @@ final class ClipboardStore {
         let query = terms.map {
             "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"*"
         }.joined(separator: " AND ")
+        var arguments: [String] = []
         if !query.isEmpty {
             sql += " AND rowid IN (SELECT rowid FROM clips_fts WHERE clips_fts MATCH ?)"
+            arguments.append(query)
         }
         if pinnedOnly { sql += " AND pinned=1" }
-        if collection != nil { sql += " AND collection=?" }
+        if let collection {
+            sql += " AND collection=?"
+            arguments.append(collection)
+        }
+        if let kind {
+            sql += " AND kind=?"
+            arguments.append(kind.rawValue)
+        }
         sql += " ORDER BY pinned DESC, created_at DESC LIMIT 500;"
 
         let stmt = try prepare(sql)
         defer { sqlite3_finalize(stmt) }
-        if !query.isEmpty { bind(query, to: 1, in: stmt) }
-        if let collection { bind(collection, to: query.isEmpty ? 1 : 2, in: stmt) }
+        for (index, value) in arguments.enumerated() {
+            bind(value, to: Int32(index + 1), in: stmt)
+        }
 
         var found: [ClipItem] = []
         while true {

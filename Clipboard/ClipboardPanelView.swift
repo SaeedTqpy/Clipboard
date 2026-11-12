@@ -76,6 +76,18 @@ struct ClipboardPanelView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(model.pinnedOnly ? .primary : .secondary)
                 Menu {
+                    Button("All Types") { model.selectedKind = nil }
+                    Divider()
+                    ForEach(ClipKind.allCases, id: \.self) { kind in
+                        Button(kind.title) { model.selectedKind = kind }
+                    }
+                } label: {
+                    Label(model.selectedKind?.title ?? "All Types", systemImage: "line.3.horizontal.decrease")
+                }
+                .menuStyle(.borderlessButton)
+                .frame(maxWidth: 120)
+
+                Menu {
                     Button("All Collections") { model.selectedCollection = nil }
                     if !model.collections.isEmpty {
                         Divider()

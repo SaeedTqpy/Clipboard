@@ -10,6 +10,7 @@ final class ClipboardModel: ObservableObject {
     @Published var panelPresentationID = 0
     @Published var settingsPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
+    @Published var selectedKind: ClipKind? = nil { didSet { reload() } }
     @Published var selectedCollection: String? = nil { didSet { reload() } }
     @Published private(set) var collections: [String] = []
     @Published private(set) var pasteStack: [ClipItem] = []
@@ -78,7 +79,8 @@ final class ClipboardModel: ObservableObject {
             clips = try store.items(
                 search: searchText,
                 pinnedOnly: pinnedOnly,
-                collection: selectedCollection
+                collection: selectedCollection,
+                kind: selectedKind
             )
             collections = try store.collectionNames()
             if let selectedCollection, !collections.contains(selectedCollection) {
