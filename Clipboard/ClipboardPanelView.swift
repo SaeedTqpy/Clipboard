@@ -413,9 +413,9 @@ struct ClipboardSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button("Request Accessibility Permission") {
-                    let options: NSDictionary = [
+                    let options = [
                         kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
-                    ]
+                    ] as CFDictionary
                     _ = AXIsProcessTrustedWithOptions(options)
                 }
             }
