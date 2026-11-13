@@ -144,3 +144,8 @@ Clipboard is an independent project and is not affiliated with Apple.
 ### If clicking a card copies but does not paste
 
 On a Mac, **automatic insertion requires two permissions**: Accessibility and permission for posting keyboard events. Clipboard now checks both when you click a Quick Shelf card and prompts for access if either is missing. Keep only the newest Clipboard app in **Applications**, quit older copies, then enable Clipboard under **System Settings → Privacy & Security → Accessibility** and restart it. Clicking the preview pastes; clicking **Copy** deliberately does not. If focus cannot be restored to the previous app, Clipboard does not inject keyboard events into a different app; your clip is already copied and can be pasted manually with ⌘V. See [real-device QA](docs/MAC_DEVICE_QA.md).
+
+
+### Diagnosing a failed paste (no clipboard contents collected)
+
+The Quick Shelf now sends a **session-level Command-V** after checking the remembered destination is foreground. The prior PID-directed event path could fail to invoke application menu shortcuts. On a click, Clipboard records an in-memory diagnostic stage. Reopen the Shelf or visit **Settings → Paste Diagnostics** to see it, and use **Copy Paste Diagnostics** to share the result without disclosing copied content. Interpret the stages: `P1` click received, `P2` clipboard updated, `P3` focus restoration, `P4` Command-V dispatched (not proof of insertion), `E2` missing destination, `E3` missing Accessibility/event-posting permission, `E5` focus timeout, `E6` event creation failure. **Do not use an automated second keypress fallback:** macOS provides no reliable insertion acknowledgment, and blind retries can paste duplicate text.

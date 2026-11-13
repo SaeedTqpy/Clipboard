@@ -44,3 +44,16 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 If one step fails, record: macOS version, chip (Intel/Apple Silicon),
 clipboard item type, app used, steps to reproduce, screenshot with no secrets,
 and a redacted Console excerpt. Hardware observations require user-provided evidence.
+
+
+## Click-to-Paste reproducible acceptance test
+
+1. Quit every older Clipboard app process, replace the app in Applications and relaunch. Inspect Accessibility permission for the newly installed app.
+2. Open Notes, click the exact typing caret in a normal note, type `BEFORE-`, and keep Notes active.
+3. Copy a harmless unique `TEST-PASTE-123` string in another app. Return to the Notes typing caret.
+4. Press Command+Shift+V, then single-click the **preview body**, not Copy. Expected: Clipboard closes and `TEST-PASTE-123` is inserted *once* at the caret.
+5. Reopen the Shelf. If the insertion did not happen, inspect the `P1/P2/P3/P4/E2/E3/E5/E6` stage; copy diagnostics from Settings. This is essential because permission approval alone cannot prove the target received the event.
+6. Repeat in Safari text fields and VS Code, including an ordinary editable field rather than a protected password field.
+7. Verify pressing Copy has no insertion side effect and menu actions do not invoke the main card Paste action.
+8. Revoke Accessibility or Event Posting and confirm `E3` is shown **without closing** the Shelf; then restore permissions and relaunch.
+9. Change to another app before the deferred dispatch and verify the destination guard prevents posting into the wrong app; no blind second attempts permitted.

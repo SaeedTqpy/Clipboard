@@ -147,3 +147,13 @@ A successful compilation is **not** a production-release approval. Complete encr
 ### Verified automated results — 2026-11-13
 
 [macOS Build #43436682354](https://github.com/SaeedTqpy/Clipboard/actions/runs/43436682354): **55/55 XCTest cases passed**; Universal Release for x86_64 + arm64 built; bundled icon validation and packaging passed. Archive SHA-256 was independently matched against included SHA256SUMS. **This validates compilation and routing policy, not the physical result of a click-to-paste on the user's Mac.**
+
+
+## Session-command paste and redacted diagnostics
+
+- [x] Removed PID-directed shortcut delivery for the foreground application's Edit → Paste shortcut.
+- [x] Use `CGEvent.post(tap: .cghidEventTap)` once, only after the remembered target is frontmost.
+- [x] Bounded focus restoration retry, never resend the keystroke after dispatch.
+- [x] In-memory diagnostic phases with no clipboard contents; settings can copy phase and permission flags.
+- [ ] On a real Mac, confirm the target app receives exactly one Command-V in Notes, VS Code and Safari.
+- [ ] If output is missing, collect redacted P/E stage before changing the event delivery again.
