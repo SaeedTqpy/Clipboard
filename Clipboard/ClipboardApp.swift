@@ -64,6 +64,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private let model = ClipboardModel.shared
     private var statusItem: NSStatusItem?
     private var panel: ClipboardFloatingPanel?
+    private var managementWindow: NSWindow?
+    private let statusContextMenu = NSMenu()
     private var monitor: ClipboardMonitor?
     private var hotkey: ClipboardGlobalHotkey?
     private var outsideClickMonitor: Any?
@@ -73,6 +75,20 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+
+        // A previous unsigned build may still be running from Downloads or
+        // another Applications folder. Request its normal termination so it
+        // cannot keep a second shelf/hotkey alive after updating.
+        if let identifier = Bundle.main.bundleIdentifier {
+            let duplicates = NSWorkspace.shared.runningApplications.filter {
+                $0.bundleIdentifier == identifier &&
+                    $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
+            }
+            for older in duplicates where !older.isTerminated {
+                _ = older.terminate()
+            }
+        }
+
         let monitor = ClipboardMonitor { [weak self] payload, source in
             self?.model.capture(payload, sourceApp: source)
         }
@@ -87,14 +103,23 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             monitor?.isPaused = paused
         }
 
-        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let statusItem = NSStatusBar.system.statusItem(
+            withLength: NSStatusItem.squareLength
+        )
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard")
-            button.toolTip = "Clipboard — Command Shift V"
+            button.image = NSImage(
+                systemSymbolName: "doc.on.clipboard",
+                accessibilityDescription: "Manage Clipboard"
+            )
+            button.toolTip = "Manage Clipboard (right-click for actions)"
+            button.target = self
+            button.action = #selector(statusItemClicked(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        let menu = NSMenu()
-        menu.delegate = self
-        statusItem.menu = menu
+        // No statusItem.menu assignment! AppKit bypasses the click action
+        // whenever this property is set. Left-click opens the manager;
+        // right-click explicitly presents the contextual menu.
+        statusContextMenu.delegate = self
         self.statusItem = statusItem
 
         hotkey = ClipboardGlobalHotkey(preset: model.hotkeyPreset) { [weak self] in
@@ -104,20 +129,25 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             self?.registerHotkey(preset) ?? false
         }
         if hotkey?.isRegistered != true {
-            model.message = "The ⌘⇧V shortcut could not be registered. Another app may be using it. Use the menu bar to open Clipboard."
+            model.message = "Shortcut \(model.hotkeyPreset.displayName) is in use. Quit older Clipboard copies or choose another shortcut in Settings."
         }
         buildPanel()
+        buildManagementWindow()
         let onboardingKey = "clipboard.hasOpenedOnce"
         if UserDefaults.standard.object(forKey: onboardingKey) == nil {
             UserDefaults.standard.set(true, forKey: onboardingKey)
-            DispatchQueue.main.async { [weak self] in self?.showPanel() }
+            DispatchQueue.main.async { [weak self] in self?.showManagementWindow() }
         }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         menu.addItem(NSMenuItem(
-            title: "Open Clipboard  \(model.hotkeyPreset.displayName)",
+            title: "Manage Clipboard",
+            action: #selector(openManager), keyEquivalent: ""
+        ))
+        menu.addItem(NSMenuItem(
+            title: "Open Quick Shelf  \(model.hotkeyPreset.displayName)",
             action: #selector(openPanel), keyEquivalent: ""
         ))
         menu.addItem(NSMenuItem(
@@ -146,7 +176,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.animationBehavior = .none
         panel.isMovableByWindowBackground = false
         panel.navigationHandler = { [weak self] action in
@@ -154,6 +184,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         }
         panel.contentView = NSHostingView(rootView: ClipboardPanelView(
             model: model,
+            presentation: .shelf,
             onDismiss: { [weak self] in self?.hidePanel() },
             onPaste: { [weak self] item in self?.paste(item) },
             onPastePlain: { [weak self] item in self?.paste(item, asPlainText: true) },
@@ -162,10 +193,58 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         self.panel = panel
     }
 
+    private func buildManagementWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1050, height: 520),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Clipboard — Manager"
+        window.minSize = NSSize(width: 720, height: 445)
+        window.isReleasedWhenClosed = false
+        window.center()
+        window.contentView = NSHostingView(rootView: ClipboardPanelView(
+            model: model,
+            presentation: .management,
+            onDismiss: { [weak window] in window?.orderOut(nil) },
+            onPaste: { [weak self] item in self?.paste(item) },
+            onPastePlain: { [weak self] item in self?.paste(item, asPlainText: true) },
+            onPasteNext: { [weak self] in self?.pasteStackNext() }
+        ))
+        managementWindow = window
+    }
+
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            statusContextMenu.popUp(
+                positioning: nil,
+                at: NSPoint(x: 0, y: sender.bounds.minY),
+                in: sender
+            )
+        } else {
+            showManagementWindow()
+        }
+    }
+
+    private func showManagementWindow() {
+        guard let managementWindow else { return }
+        let foreground = NSWorkspace.shared.frontmostApplication
+        if foreground?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            previousApp = foreground
+        }
+        // There is exactly one visible Clipboard surface at any time.
+        hidePanelImmediately()
+        NSApp.activate(ignoringOtherApps: true)
+        managementWindow.makeKeyAndOrderFront(nil)
+        model.managerPresentationID &+= 1
+    }
+
+    @objc private func openManager() { showManagementWindow() }
     @objc private func openPanel() { showPanel() }
 
     @objc private func openSettings() {
-        showPanel()
+        showManagementWindow()
         model.settingsPresentationID &+= 1
     }
 
@@ -184,14 +263,21 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         if foreground?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
             previousApp = foreground
         }
+        // A keyboard shortcut must never reveal the manager as a second window.
+        managementWindow?.orderOut(nil)
         model.searchText = ""
         guard let screen = NSScreen.screens.first(where: {
             $0.frame.contains(NSEvent.mouseLocation)
         }) ?? NSScreen.main ?? NSScreen.screens.first else { return }
 
-        // A screen-width shelf anchored immediately above the Dock, including
-        // on secondary displays with different screen origins.
-        let target = ClipboardShelfLayout.frame(in: screen.visibleFrame)
+        // Physically flush with the display, not with NSScreen.visibleFrame.
+        // The latter excludes the Dock and caused the visible lower gap.
+        let target = ClipboardShelfLayout.frame(
+            in: screen.frame, visibleFrame: screen.visibleFrame
+        )
+        model.shelfBottomInset = ClipboardShelfLayout.bottomContentInset(
+            screenFrame: screen.frame, visibleFrame: screen.visibleFrame
+        )
         panelTransitionID &+= 1
         isClosingShelf = false
         let reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -279,7 +365,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         }
         guard replacement.isRegistered else { return false }
         hotkey = replacement
-        statusItem?.button?.toolTip = "Clipboard — \(preset.displayName)"
+        statusItem?.button?.toolTip =
+            "Manage Clipboard (Quick Shelf: \(preset.displayName))"
         return true
     }
 
