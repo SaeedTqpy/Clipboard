@@ -38,6 +38,7 @@ enum ClipboardPreferences {
     static let retentionDaysKey = "clipboard.retention.days"
     static let retentionCountKey = "clipboard.retention.count"
     static let ocrKey = "clipboard.capture.ocr"
+    static let hotkeyKey = "clipboard.hotkey.preset"
 
     static func enabled(_ key: String, fallback: Bool = true) -> Bool {
         guard UserDefaults.standard.object(forKey: key) != nil else { return fallback }

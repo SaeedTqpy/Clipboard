@@ -14,16 +14,55 @@ struct ClipboardApp: App {
     }
 }
 
+private enum ClipboardPanelNavigation {
+    case earlier, later, paste, pastePlain, togglePin, delete, quick(Int)
+}
+
 private final class ClipboardFloatingPanel: NSPanel {
+    var navigationHandler: ((ClipboardPanelNavigation) -> Bool)?
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    /// NSPanel intercepts navigation before NSTextField consumes Return/arrow keys.
+    /// Left/right are left available for cursor editing in the search field.
+    override func sendEvent(_ event: NSEvent) {
+        guard event.type == .keyDown, attachedSheet == nil else {
+            super.sendEvent(event)
+            return
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let command = flags.contains(.command)
+        let option = flags.contains(.option)
+        let control = flags.contains(.control)
+        let shift = flags.contains(.shift)
+        var action: ClipboardPanelNavigation?
+
+        if !command && !control && !shift {
+            switch event.keyCode {
+            case 125: action = .later                  // Down
+            case 126: action = .earlier                // Up
+            case 36, 76: action = option ? .pastePlain : .paste
+            default: break
+            }
+        }
+        if command && !option && !control && !shift {
+            if event.keyCode == 35 { action = .togglePin } // Cmd+P
+            if event.keyCode == 51 { action = .delete }    // Cmd+Backspace
+            if let number = Int(event.charactersIgnoringModifiers ?? ""),
+               (1...9).contains(number) {
+                action = .quick(number - 1)
+            }
+        }
+        if let action, navigationHandler?(action) == true { return }
+        super.sendEvent(event)
+    }
 }
 
 @MainActor
 final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let model = ClipboardModel.shared
     private var statusItem: NSStatusItem?
-    private var panel: NSPanel?
+    private var panel: ClipboardFloatingPanel?
     private var monitor: ClipboardMonitor?
     private var hotkey: ClipboardGlobalHotkey?
     private var outsideClickMonitor: Any?
@@ -55,8 +94,11 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         statusItem.menu = menu
         self.statusItem = statusItem
 
-        hotkey = ClipboardGlobalHotkey { [weak self] in
+        hotkey = ClipboardGlobalHotkey(preset: model.hotkeyPreset) { [weak self] in
             self?.togglePanel()
+        }
+        model.onHotkeyChange = { [weak self] preset in
+            self?.registerHotkey(preset) ?? false
         }
         if hotkey?.isRegistered != true {
             model.message = "The ⌘⇧V shortcut could not be registered. Another app may be using it. Use the menu bar to open Clipboard."
@@ -71,7 +113,10 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        menu.addItem(NSMenuItem(title: "Open Clipboard  ⌘⇧V", action: #selector(openPanel), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(
+            title: "Open Clipboard  \(model.hotkeyPreset.displayName)",
+            action: #selector(openPanel), keyEquivalent: ""
+        ))
         menu.addItem(NSMenuItem(
             title: model.isPaused ? "Resume Monitoring" : "Pause Monitoring",
             action: #selector(toggleMonitoring),
@@ -99,6 +144,9 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true
+        panel.navigationHandler = { [weak self] action in
+            self?.handleNavigation(action) ?? false
+        }
         panel.contentView = NSHostingView(rootView: ClipboardPanelView(
             model: model,
             onDismiss: { [weak self] in self?.hidePanel() },
@@ -159,6 +207,45 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             NSEvent.removeMonitor(outsideClickMonitor)
             self.outsideClickMonitor = nil
         }
+    }
+
+    private func registerHotkey(_ preset: ClipboardHotkeyPreset) -> Bool {
+        // Register replacement before dropping the old shortcut; failure is reversible.
+        let replacement = ClipboardGlobalHotkey(preset: preset) { [weak self] in
+            self?.togglePanel()
+        }
+        guard replacement.isRegistered else { return false }
+        hotkey = replacement
+        statusItem?.button?.toolTip = "Clipboard — \(preset.displayName)"
+        return true
+    }
+
+    private func handleNavigation(_ action: ClipboardPanelNavigation) -> Bool {
+        switch action {
+        case .earlier: return model.navigate(-1)
+        case .later: return model.navigate(1)
+        case .paste:
+            guard let item = model.selectedClip else { return false }
+            paste(item)
+        case .pastePlain:
+            guard let item = model.selectedClip else { return false }
+            paste(item, asPlainText: true)
+        case .quick(let index):
+            guard model.clips.indices.contains(index) else { return false }
+            paste(model.clips[index])
+        case .togglePin:
+            guard let item = model.selectedClip else { return false }
+            model.togglePinned(item)
+        case .delete:
+            guard let item = model.selectedClip else { return false }
+            let alert = NSAlert()
+            alert.messageText = "Delete selected clipboard item?"
+            alert.informativeText = "This cannot be undone."
+            alert.addButton(withTitle: "Delete")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() == .alertFirstButtonReturn { model.delete(item) }
+        }
+        return true
     }
 
     private func pasteStackNext() {
@@ -233,7 +320,7 @@ private final class ClipboardGlobalHotkey {
     private(set) var isRegistered = false
     private let callback: () -> Void
 
-    init(callback: @escaping () -> Void) {
+    init(preset: ClipboardHotkeyPreset, callback: @escaping () -> Void) {
         self.callback = callback
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
@@ -255,8 +342,8 @@ private final class ClipboardGlobalHotkey {
         guard installStatus == noErr else { return }
         let identifier = EventHotKeyID(signature: 0x434C4950, id: 1)
         let registrationStatus = RegisterEventHotKey(
-            UInt32(kVK_ANSI_V),
-            UInt32(cmdKey | shiftKey),
+            preset.keyCode,
+            preset.carbonModifiers,
             identifier,
             GetApplicationEventTarget(),
             0,

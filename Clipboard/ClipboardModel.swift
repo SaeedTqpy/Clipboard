@@ -7,6 +7,8 @@ final class ClipboardModel: ObservableObject {
     static let shared = ClipboardModel()
 
     @Published private(set) var clips: [ClipItem] = []
+    @Published var selectedClipID: String?
+    @Published private(set) var hotkeyPreset: ClipboardHotkeyPreset
     @Published var searchText = ""
     @Published var panelPresentationID = 0
     @Published var settingsPresentationID = 0
@@ -49,10 +51,14 @@ final class ClipboardModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     var onClipboardWrite: (() -> Void)?
     var onMonitoringChange: ((Bool) -> Void)?
+    var onHotkeyChange: ((ClipboardHotkeyPreset) -> Bool)?
     private var store: ClipboardStore?
     var databaseUnavailable: Bool { store == nil }
 
     private init() {
+        hotkeyPreset = ClipboardHotkeyPreset(
+            rawValue: UserDefaults.standard.string(forKey: ClipboardPreferences.hotkeyKey) ?? ""
+        ) ?? .commandShiftV
         captureImages = ClipboardPreferences.captureImages
         captureFiles = ClipboardPreferences.captureFiles
         recognizeImages = ClipboardPreferences.recognizeImages
@@ -100,6 +106,11 @@ final class ClipboardModel: ObservableObject {
                 sourceApp: selectedSourceApp,
                 since: historyPeriod.startDate
             )
+            if let selectedClipID, !clips.contains(where: { $0.id == selectedClipID }) {
+                self.selectedClipID = clips.first?.id
+            } else if selectedClipID == nil {
+                self.selectedClipID = clips.first?.id
+            }
             collections = try store.collectionNames()
             sourceApps = try store.sourceApplicationNames()
             if let selectedSourceApp, !sourceApps.contains(selectedSourceApp) {
@@ -111,6 +122,29 @@ final class ClipboardModel: ObservableObject {
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    var selectedClip: ClipItem? {
+        clips.first(where: { $0.id == selectedClipID }) ?? clips.first
+    }
+
+    @discardableResult
+    func navigate(_ distance: Int) -> Bool {
+        guard !clips.isEmpty else { return false }
+        let currentIndex = clips.firstIndex(where: { $0.id == selectedClipID }) ?? 0
+        let nextIndex = max(0, min(clips.count - 1, currentIndex + distance))
+        selectedClipID = clips[nextIndex].id
+        return true
+    }
+
+    func setHotkeyPreset(_ preset: ClipboardHotkeyPreset) {
+        guard preset != hotkeyPreset else { return }
+        guard onHotkeyChange?(preset) == true else {
+            message = "Shortcut could not be registered. Another app may be using it."
+            return
+        }
+        hotkeyPreset = preset
+        UserDefaults.standard.set(preset.rawValue, forKey: ClipboardPreferences.hotkeyKey)
     }
 
     func togglePaused() {
@@ -273,6 +307,20 @@ final class ClipboardModel: ObservableObject {
         onClipboardWrite?()
         if !success { message = "Could not copy this item." }
         return success
+    }
+
+    @discardableResult
+    func copyRecognizedText(_ item: ClipItem) -> Bool {
+        guard let text = item.recognizedText, !text.isEmpty else {
+            message = "No recognized text is stored for this image."
+            return false
+        }
+        let board = NSPasteboard.general
+        board.clearContents()
+        let result = board.setString(text, forType: .string)
+        onClipboardWrite?()
+        if !result { message = "Could not copy recognized image text." }
+        return result
     }
 
     @discardableResult

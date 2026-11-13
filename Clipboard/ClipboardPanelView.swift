@@ -542,8 +542,19 @@ struct ClipboardSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section("Shortcuts") {
-                Text("⌘⇧V opens the shelf. ⌘1 through ⌘9 paste a visible clip.")
+            Section("Keyboard Shortcuts") {
+                Picker("Open Clipboard", selection: Binding(
+                    get: { model.hotkeyPreset },
+                    set: { model.setHotkeyPreset($0) }
+                )) {
+                    ForEach(ClipboardHotkeyPreset.allCases) { preset in
+                        Text(preset.displayName).tag(preset)
+                    }
+                }
+                Text("↑↓ select a clip · Return paste · Option+Return paste plain · ⌘P pin · ⌘1–9 quick paste.")
+                Text("If a shortcut is already used by another application, Clipboard keeps the previous working shortcut.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("Automatic paste requires macOS Accessibility permission; copying does not.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
