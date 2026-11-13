@@ -505,20 +505,29 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
         let accessibility = AXIsProcessTrusted()
         let posting = CGPreflightPostEventAccess()
-        guard accessibility && posting else {
+        let missingPermission = ClipboardPastePermissionPolicy.missing(
+            accessibility: accessibility, postEvent: posting
+        )
+        guard missingPermission == .none else {
+            // AX and PostEvent are *separate* TCC decisions. AX=true does not
+            // imply CGEvent keyboard injection has been authorized.
             if !accessibility {
                 let options = [
                     kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
                 ] as CFDictionary
                 _ = AXIsProcessTrustedWithOptions(options)
             }
-            if !posting { _ = CGRequestPostEventAccess() }
-            model.message = "Copied but not pasted. Accessibility=\(accessibility), Event Posting=\(posting). This build may not match the app previously authorized in macOS. Install the new ad-hoc signed version in /Applications, reauthorize its Accessibility grant and relaunch. Inspect Settings → Paste Diagnostics → Refresh TCC & Signing Status."
+            if !posting {
+                // This requests the actual keystroke-posting permission.
+                // Result may remain false until user approval + app relaunch.
+                _ = CGRequestPostEventAccess()
+            }
+            model.message = ClipboardPastePermissionPolicy.message(missingPermission)
             model.updatePasteDiagnostic(
-                "E3 · Permissions AX=\(accessibility) EVENT=\(posting)",
+                "\(ClipboardPastePermissionPolicy.diagnostics(missingPermission)) AX=\(accessibility) EVENT=\(posting)",
                 target: targetName
             )
-            // Do not close on an actionable error: the previous build hid it.
+            // Keep the shelf visible so the diagnostic and Settings remain usable.
             return
         }
 

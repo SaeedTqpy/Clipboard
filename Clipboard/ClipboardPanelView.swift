@@ -838,15 +838,38 @@ struct ClipboardSettingsView: View {
                         signingAndPermissionSummary = ClipboardPermissionAudit.summary()
                     }
                     Button("Copy Paste Diagnostics") { model.copyPasteDiagnostic() }
-                    Button("Request Accessibility Permission") {
+                    Button("Request Event Posting Access") {
+                        // Apple exposes a separate permission for synthetic
+                        // keystrokes: this must not be hidden under an AX button.
+                        _ = CGRequestPostEventAccess()
+                        signingAndPermissionSummary = ClipboardPermissionAudit.summary()
+                    }
+                    Button("Request Accessibility Access") {
                         let options = [
                             kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
                         ] as CFDictionary
                         _ = AXIsProcessTrustedWithOptions(options)
-                        _ = CGRequestPostEventAccess()
+                        signingAndPermissionSummary = ClipboardPermissionAudit.summary()
                     }
                 }
-                Text("Unsigned builds cannot establish a reliable TCC identity. Ad-hoc signing creates a version-specific identity: when upgrading, install the new version in /Applications, reset only Clipboard's Accessibility grant once, approve the new app, and fully relaunch. Event Posting is related to Accessibility, not Input Monitoring.")
+                Text("If Accessibility is TRUE but Event Posting is FALSE, macOS is denying the separate PostEvent TCC service, which sends Command-V. Use Request Event Posting Access above. If it remains false, quit Clipboard, reset only PostEvent for its bundle ID using the command below, then reopen this exact /Applications app, request approval and relaunch.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 9) {
+                    Text("tccutil reset PostEvent dev.clipboard.app")
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button("Copy Command") {
+                        let board = NSPasteboard.general
+                        board.clearContents()
+                        _ = board.setString(
+                            "tccutil reset PostEvent dev.clipboard.app",
+                            forType: .string
+                        )
+                        model.onClipboardWrite?()
+                    }
+                }
+                Text("Do not run the reset command with sudo or reset all macOS privacy permissions. PostEvent is not Input Monitoring. A newly granted permission may require quitting and reopening Clipboard.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("Shows where the last paste attempt stopped. Diagnostics contain no copied text or images. A sent Command+V is not proof that the target accepted it.")

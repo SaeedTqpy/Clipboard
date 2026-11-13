@@ -63,7 +63,10 @@ enum ClipboardPermissionAudit {
         Running location: \(location.rawValue)
         Code signature: \(signature().rawValue)
         Accessibility (AX): \(AXIsProcessTrusted())
-        Event Posting: \(CGPreflightPostEventAccess())
+        Event Posting (PostEvent): \(CGPreflightPostEventAccess())
+        AX and PostEvent are distinct TCC permissions.
+        If AX=true but PostEvent=false, use Request Event Posting Access in Settings.
+        If denied persistently: quit Clipboard; run tccutil reset PostEvent dev.clipboard.app; relaunch and request PostEvent.
         A green system toggle for an older binary is not proof of TCC trust.
         """
     }
