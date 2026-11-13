@@ -509,6 +509,25 @@ final class ClipboardStore {
                 try saveAsSnippet(id: id, title: title ?? "Snippet")
             } else {
                 try rename(id: id, to: title)
+                // Turning off the Snippet option removes the special pinned
+                // collection only for entries that were previously snippets.
+                let stmt = try prepare("""
+                    SELECT id,fingerprint,created_at,pinned,sealed
+                    FROM secure_clips WHERE id=?;
+                    """)
+                bind(id, to: 1, in: stmt)
+                let isSnippet: Bool
+                if sqlite3_step(stmt) == SQLITE_ROW {
+                    do { isSnippet = try unpackRow(stmt).item.collection == "Snippets" }
+                    catch { sqlite3_finalize(stmt); throw error }
+                } else {
+                    isSnippet = false
+                }
+                sqlite3_finalize(stmt)
+                if isSnippet {
+                    try setCollection(nil, id: id)
+                    try setPinned(false, id: id)
+                }
             }
             try execute("COMMIT;")
         } catch {
@@ -629,6 +648,22 @@ final class ClipboardStore {
         bind(id, to: 2, in: update)
         try stepDone(update)
         decryptedCache = nil
+    }
+
+    func deleteRecent(minutes: Int, includePinned: Bool = false) throws {
+        guard (1...43_200).contains(minutes) else {
+            throw ClipboardStoreError.database("Invalid recent-history time range.")
+        }
+        let cutoff = Date().addingTimeInterval(-Double(minutes) * 60).timeIntervalSince1970
+        let query = includePinned
+            ? "DELETE FROM secure_clips WHERE created_at >= ?;"
+            : "DELETE FROM secure_clips WHERE created_at >= ? AND pinned=0;"
+        let stmt = try prepare(query)
+        sqlite3_bind_double(stmt, 1, cutoff)
+        do { try stepDone(stmt) } catch { sqlite3_finalize(stmt); throw error }
+        sqlite3_finalize(stmt)
+        decryptedCache = nil
+        try removeUnreferencedAssets()
     }
 
     func setPinned(_ pinned: Bool, id: String) throws {

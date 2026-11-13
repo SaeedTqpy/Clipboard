@@ -448,6 +448,8 @@ private extension View {
 
 struct ClipboardSettingsView: View {
     @ObservedObject var model: ClipboardModel
+    @State private var showingRecentClear = false
+    @State private var recentClearMinutes = 15
 
     private var runningApplications: [NSRunningApplication] {
         NSWorkspace.shared.runningApplications
@@ -521,6 +523,29 @@ struct ClipboardSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("History Cleanup") {
+                Menu("Clear Recent Unpinned Clips…") {
+                    Button("Last 5 minutes") {
+                        recentClearMinutes = 5
+                        showingRecentClear = true
+                    }
+                    Button("Last 15 minutes") {
+                        recentClearMinutes = 15
+                        showingRecentClear = true
+                    }
+                    Button("Last 1 hour") {
+                        recentClearMinutes = 60
+                        showingRecentClear = true
+                    }
+                    Button("Last 24 hours") {
+                        recentClearMinutes = 1440
+                        showingRecentClear = true
+                    }
+                }
+                Text("This does not delete pinned clips or snippets. Destructive changes require confirmation.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Encrypted Backups") {
                 Text("Export a portable backup protected with a password. No unencrypted export file is written to disk.")
                     .font(.caption)
@@ -568,6 +593,18 @@ struct ClipboardSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 615, height: 600)
+        .confirmationDialog(
+            "Delete recent unpinned clips?",
+            isPresented: $showingRecentClear,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Recent History", role: .destructive) {
+                model.clearRecent(minutes: recentClearMinutes)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Clips newer than the selected cutoff are deleted. Pinned items and Snippets are kept.")
+        }
     }
 
     private func confirmDatabaseRecovery() {

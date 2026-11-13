@@ -248,6 +248,19 @@ final class ClipboardModel: ObservableObject {
         }
     }
 
+    func clearRecent(minutes: Int) {
+        do {
+            try store?.deleteRecent(minutes: minutes)
+            pasteStack.removeAll { item in !item.pinned &&
+                item.createdAt >= Date().addingTimeInterval(-Double(minutes) * 60)
+            }
+            reload()
+            message = "Recent unpinned history cleared."
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
     func clearHistory() {
         do {
             try store?.clearAll()
