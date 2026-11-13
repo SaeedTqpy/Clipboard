@@ -128,7 +128,6 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             previousApp = foreground
         }
         model.searchText = ""
-        model.panelPresentationID &+= 1
         if let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
             ?? NSScreen.main ?? NSScreen.screens.first {
             let available = screen.visibleFrame
@@ -141,6 +140,10 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         }
         panel.orderFrontRegardless()
         panel.makeKey()
+        // Focus after the nonactivating panel has actually become visible.
+        DispatchQueue.main.async { [weak self] in
+            self?.model.panelPresentationID &+= 1
+        }
         if outsideClickMonitor == nil {
             outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
                 matching: [.leftMouseDown, .rightMouseDown]

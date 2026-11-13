@@ -35,7 +35,7 @@ struct ClipboardPanelView: View {
                         .textFieldStyle(.plain)
                         .focused($searchFocused)
                         .font(.system(size: 13))
-                        .frame(width: 240)
+                        .frame(minWidth: 110, maxWidth: 240)
                 }
                 .padding(.horizontal, 12)
                 .frame(height: 36)
@@ -195,7 +195,7 @@ struct ClipboardPanelView: View {
             }
         }
         .padding(22)
-        .frame(minWidth: 680, maxWidth: .infinity, minHeight: 445, maxHeight: 445)
+        .frame(minWidth: 520, maxWidth: .infinity, minHeight: 445, maxHeight: 445)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
