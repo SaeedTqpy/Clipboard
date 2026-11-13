@@ -4,6 +4,11 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
+  # Single opt-in validation marker; never build on ordinary source changes.
+  push:
+    branches: [main]
+    paths:
+      - ".ci/competitive-validation-trigger.txt"
 
 concurrency:
   group: clipboard-manual-build
