@@ -1,24 +1,27 @@
 import AppKit
 
-/// Full-width shelf physically flush with the screen edge.
-/// The visible screen rectangle protects controls from the Dock, but does not
-/// determine the shelf's bottom position.
+/// Bottom-attached Quick Shelf. This transient surface temporarily covers the
+/// Dock rather than making the user change Dock preferences or moving controls
+/// above the Dock. The menu bar / system alerts remain under macOS control.
 enum ClipboardShelfLayout {
+    /// A transient pop-up sits above the Dock's window level. Unlike
+    /// screenSaver, it does not unnecessarily cover high-priority OS UI.
+    static let windowLevel: NSWindow.Level = .popUpMenu
+
     static func frame(
         in screenFrame: CGRect, visibleFrame: CGRect,
         density: ClipboardShelfDensity = .comfortable
     ) -> CGRect {
-        let safeBottom = bottomContentInset(
-            screenFrame: screenFrame, visibleFrame: visibleFrame
-        )
         let effectiveDensity = ClipboardShelfDensity.effective(
             preferred: density, screenHeight: screenFrame.height
         )
-        let maxAvailable = max(200, screenFrame.height - 44)
+        // Use visibleFrame only to reserve the menu-bar/top safe area.
+        // The Dock at the bottom is covered, not added to the shelf height.
+        let topReserved = max(44, screenFrame.maxY - visibleFrame.maxY)
+        let maxAvailable = max(200, screenFrame.height - topReserved)
         let height = min(
             screenFrame.height,
-            max(200, min(maxAvailable,
-                         effectiveDensity.preferredShelfHeight + safeBottom))
+            max(200, min(maxAvailable, effectiveDensity.preferredShelfHeight))
         )
         return CGRect(
             x: screenFrame.minX,
@@ -26,11 +29,6 @@ enum ClipboardShelfLayout {
             width: screenFrame.width,
             height: height
         )
-    }
-
-    /// Amount of UI padding inside the shelf to avoid the bottom Dock.
-    static func bottomContentInset(screenFrame: CGRect, visibleFrame: CGRect) -> CGFloat {
-        max(0, min(160, visibleFrame.minY - screenFrame.minY))
     }
 
     /// The entire shelf begins below the physical display before sliding up.

@@ -9,10 +9,13 @@ Two purpose-built surfaces exist, and they must remain separate.
   the previously active app, and send only one authorized Command-V.
 - **Clipboard Manager:** left-click on the Menu Bar icon. A separate, normal
   resizable AppKit window. Clicking a preview here only selects the clip.
-- The Shelf is **physically attached to the lower screen edge**. The Dock
-  floats in front of the very bottom area; the interactive content receives
-  an internal bottom inset computed from NSScreen.visibleFrame. Avoid
-  floating the outer panel above visibleFrame: that creates a black gap.
+- The Shelf is **physically attached to the lower screen edge** and uses a
+  transient `NSWindow.Level.popUpMenu` so it renders above the Dock.
+  The Dock is visually **covered only while the Shelf is open**, not killed,
+  hidden via system preferences, or reconfigured. Dock clearance is **not**
+  added to Shelf height. The glass canvas has an adaptive opaque foundation
+  to keep Dock icons from showing through the background.
+  `NSScreen.visibleFrame` is used to reserve the top menu-bar safe area.
 - The active screen follows the pointer. Negative coordinates on secondary
   displays, left/right/bottom Dock positions and Reduce Motion are supported.
 - Normal dismissals animate down. **Actual Paste dismisses immediately** to
@@ -44,8 +47,9 @@ Two purpose-built surfaces exist, and they must remain separate.
 | Card gap | 20 pt | 14 pt |
 | Shelf base height | 544 pt | 480 pt |
 
-The screen-specific bottom Dock inset is added to the base Shelf height and
-clamped to the physical display size. Displays shorter than 680 pt force
+The bottom Dock size does not change the Shelf height. Height is clamped to
+the physical display minus the top menu-bar safe area. Displays shorter than
+680 pt force
 Compact even when the user previously chose Comfortable. Displays below
 660 pt omit the optional tag rail and those below 580 pt omit the footer,
 preserving a functional main toolbar and preview instead of clipping them.
@@ -79,8 +83,9 @@ state and accessible button labels. Horizontal virtualization remains a
 - [ ] Mac 26: verify native reflections, mouse hover, floating controls,
   screenshot in light and dark mode.
 - [ ] Mac 15: confirm readability and fallback material.
-- [ ] Dock bottom and Dock left/right; screen edge has **zero external gap**
-  and card controls are not covered by Dock.
+- [ ] Dock bottom and Dock left/right; Shelf stays on top while visible,
+  Dock icons do not show through the translucent backdrop, and no Dock height
+  is added to the Shelf. Dismissing the Shelf reveals an unchanged Dock.
 - [ ] Displays 650 pt, 900 pt and 1080 pt high; two screens with negative
   origins; compact mode when constrained.
 - [ ] Comfortable and Compact change card dimensions **and panel height**.

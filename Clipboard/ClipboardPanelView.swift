@@ -91,10 +91,7 @@ struct ClipboardPanelView: View {
                             in: RoundedRectangle(cornerRadius: 13))
             }
         }
-        .modifier(ClipboardPanelChrome(
-            presentation: presentation,
-            bottomContentInset: presentation == .shelf ? model.shelfBottomInset : 0
-        ))
+        .modifier(ClipboardPanelChrome(presentation: presentation))
         .onExitCommand(perform: onDismiss)
         .onChange(of: presentation == .shelf
                       ? model.panelPresentationID
@@ -547,12 +544,10 @@ private struct ClipboardTopRoundedShape: Shape {
     }
 }
 
-/// Uses a single system glass canvas instead of a fake opaque black panel.
-/// Dock clearance is *inside* the shelf: the full-screen bottom edge remains
-/// connected to the Dock while the content and controls stay unobscured.
+/// Covers the Dock with a transient glass canvas. Dock preferences remain
+/// untouched and the shelf consumes no extra vertical space for Dock clearance.
 private struct ClipboardPanelChrome: ViewModifier {
     let presentation: ClipboardPanelPresentation
-    let bottomContentInset: CGFloat
 
     func body(content: Content) -> some View {
         Group {
@@ -560,7 +555,7 @@ private struct ClipboardPanelChrome: ViewModifier {
                 content
                     .padding(.horizontal, 23)
                     .padding(.top, 16)
-                    .padding(.bottom, max(15, bottomContentInset + 8))
+                    .padding(.bottom, 16)
                     .frame(minWidth: 300, maxWidth: .infinity,
                            minHeight: 300, maxHeight: .infinity)
                     .background {
@@ -591,7 +586,13 @@ private struct ClipboardGlassBackdrop: View {
 
     var body: some View {
         ZStack {
+            // An opaque foundation plus an adaptive translucent veneer keeps
+            // Dock icons from bleeding through the shelf's backdrop.
+            // Native Liquid Glass remains on the prominent controls.
+            shape.fill(Color(nsColor: .windowBackgroundColor))
             shape.fill(.ultraThinMaterial)
+            shape.fill(Color(nsColor: .windowBackgroundColor)
+                .opacity(colorScheme == .dark ? 0.88 : 0.84))
             if #available(macOS 26, *) {
                 shape
                     .fill(.white.opacity(0.012))

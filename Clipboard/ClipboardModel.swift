@@ -14,7 +14,6 @@ final class ClipboardModel: ObservableObject {
     @Published var searchText = ""
     @Published var panelPresentationID = 0
     @Published var managerPresentationID = 0
-    @Published var shelfBottomInset: CGFloat = 0
     @Published var shelfScreenHeight: CGFloat = 900
     @Published var shelfScreenWidth: CGFloat = 1440
     @Published var settingsPresentationID = 0

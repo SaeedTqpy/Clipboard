@@ -197,7 +197,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             defer: false
         )
         panel.isFloatingPanel = true
-        panel.level = .floating
+        // Keep only the transient Quick Shelf above Dock; Manager stays normal.
+        panel.level = ClipboardShelfLayout.windowLevel
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.backgroundColor = .clear
         panel.isOpaque = false
@@ -359,9 +360,6 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         )
         model.shelfScreenHeight = screen.frame.height
         model.shelfScreenWidth = screen.frame.width
-        model.shelfBottomInset = ClipboardShelfLayout.bottomContentInset(
-            screenFrame: screen.frame, visibleFrame: screen.visibleFrame
-        )
         panelTransitionID &+= 1
         isClosingShelf = false
         let reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
