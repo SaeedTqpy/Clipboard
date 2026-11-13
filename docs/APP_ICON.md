@@ -25,3 +25,7 @@ plutil -extract CFBundleIconFile raw Clipboard.app/Contents/Info.plist
 The icon appears in Finder, Get Info and the Dock when the app is pinned.
 Clipboard runs as an LSUIElement menu bar utility, so it does not normally show a Dock tile.
 The menu bar button remains monochrome by design, following macOS menu bar conventions.
+
+## Bundle metadata
+
+XcodeGen writes `.generated/Clipboard-Info.plist` with a real `CFBundleIconFile` key and sets `GENERATE_INFOPLIST_FILE=NO` for the application target. The earlier `INFOPLIST_KEY_CFBundleIconFile` build setting was insufficient with the generated plist in the macOS runner; this explicit metadata prevents silently shipping a generic app icon.

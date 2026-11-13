@@ -9,3 +9,6 @@ dist/
 *.xcuserstate
 *.xcuserdata/
 .swiftpm/
+
+# XcodeGen generated plist (recreated on every project generation)
+.generated/
