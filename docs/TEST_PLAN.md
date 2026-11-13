@@ -63,13 +63,13 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 ## Verified CI milestone — 2026-11-13
 
 - [x] Compiled the latest animated bottom shelf and encrypted color tags on macOS 26.
-- [x] **62/62 XCTest tests passed**, including geometry and tag lifecycle tests.
+- [x] **66/66 XCTest tests passed**, including geometry and tag lifecycle tests.
 - [x] Release compiled for both x86_64 and arm64.
 - [x] Artifact ZIP integrity and inner application archive SHA-256 verified.
 - [x] Restored macOS CI to manual-only after batched validation.
 - [ ] Real-device visual acceptance, Dock/Space transitions, Accessibility and Paste focus checks still required.
 
-Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
+Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795).
 
 ## Separate Quick Shelf and Clipboard Manager (new milestone)
 
@@ -119,8 +119,8 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ## Win-key shortcut and one-click paste — verified CI, 2026-11-13
 
-- [x] Mac CI: **62/62 XCTest cases successful** (includes shortcut migration and shelf-versus-manager card tap routing).
-- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
+- [x] Mac CI: **66/66 XCTest cases successful** (includes shortcut migration and shelf-versus-manager card tap routing).
+- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795).
 - [x] Inner app ZIP SHA-256 matches the bundled checksum.
 - [ ] Physical Windows-logo modifier keyboard mapping and focus-safe insertion into Notes/VS Code/Safari still require manual on-device QA.
 
@@ -129,7 +129,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [x] Script draws ten PNG variants and macOS `iconutil` generates ICNS in XcodeGen pre-build phase.
 - [x] App Info.plist includes `CFBundleIconFile=Clipboard.icns` (explicit plist generation).
 - [x] CI extracts the bundled ICNS as an iconset; 1024px entry is present.
-- [x] 62/62 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
+- [x] 66/66 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795).
 - [ ] Confirm actual Finder and Dock display and icon caching on a user's Mac.
 
 ## Click-to-Paste reliability — regression after user report
@@ -146,7 +146,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ### Verified automated results — 2026-11-13
 
-[macOS Build #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781): **62/62 XCTest cases passed**; Universal Release for x86_64 + arm64 built; bundled icon validation and packaging passed. Archive SHA-256 was independently matched against included SHA256SUMS. **This validates compilation and routing policy, not the physical result of a click-to-paste on the user's Mac.**
+[macOS Build #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795): **66/66 XCTest cases passed**; Universal Release for x86_64 + arm64 built; bundled icon validation and packaging passed. Archive SHA-256 was independently matched against included SHA256SUMS. **This validates compilation and routing policy, not the physical result of a click-to-paste on the user's Mac.**
 
 
 ## Session-command paste and redacted diagnostics
@@ -160,7 +160,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ## Validated session Command-V build — 2026-11-13
 
-- [x] [macOS Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed **62/62 XCTest cases** and produced an unsigned universal `x86_64` + `arm64` app.
+- [x] [macOS Actions #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passed **66/66 XCTest cases** and produced an unsigned universal `x86_64` + `arm64` app.
 - [x] Custom bundled ICNS verified; inner `Clipboard-macOS-unsigned.zip` checksum matches included SHA256SUMS.
 - [x] All production/test source files at main match the validated commit.
 - [ ] User-device acceptance required: after clicking a card, confirm exactly one insertion into Notes/Safari/VS Code; use `Paste Diagnostics` and report stage code if not.
@@ -177,7 +177,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ### Verified TCC-identity packaging milestone
 
-[GitHub Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781): **62/62 tests passed** and `Clipboard-macOS-adhoc` published with a verified `dev.clipboard.app` ad-hoc signature and designated requirement. **Pending:** reinstall/reauthorization and real paste on user's Mac.
+[GitHub Actions #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795): **66/66 tests passed** and `Clipboard-macOS-adhoc` published with a verified `dev.clipboard.app` ad-hoc signature and designated requirement. **Pending:** reinstall/reauthorization and real paste on user's Mac.
 
 ## Independent PostEvent permission regression
 
@@ -188,3 +188,10 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [ ] UI provides only `tccutil reset PostEvent dev.clipboard.app` as the scoped reset for this denial.
 - [ ] After permission grant, fully quit/relaunch before relying on fresh preflight results.
 - [ ] Test keyboard insertion exactly once in Notes after `PostEvent=true` on the user's device.
+
+### PostEvent macOS build verified — 2026-11-13
+
+- [x] [GitHub Actions #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passed **66/66 XCTest cases** and produced a valid Ad-hoc signed Universal app (arm64+x86_64).
+- [x] Verified inner ZIP SHA-256 matches published SHA256SUMS exactly.
+- [x] Independent PostEvent denial diagnostic and permission request path are implemented and unit-tested.
+- [ ] Device acceptance: reset only PostEvent for this exact build, request PostEvent, restart, verify preflight true and a single successful Paste in Notes.

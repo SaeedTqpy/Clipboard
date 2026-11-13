@@ -103,7 +103,7 @@ switching the same toggle without examining these results.
 
 ## CI verification — 2026-11-13
 
-[GitHub Actions run #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed **62/62 tests**, created the Universal `arm64/x86_64` release, ad-hoc signed the final app and verified its designated requirement. The uploaded `Clipboard-macOS-adhoc` artifact contains an inner ZIP with a working `_CodeSignature/CodeResources` and its matching SHA-256 checksum. No real-device TCC authorization has been asserted.
+[GitHub Actions run #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passed **66/66 tests**, created the Universal `arm64/x86_64` release, ad-hoc signed the final app and verified its designated requirement. The uploaded `Clipboard-macOS-adhoc` artifact contains an inner ZIP with a working `_CodeSignature/CodeResources` and its matching SHA-256 checksum. No real-device TCC authorization has been asserted.
 
 ## macOS PostEvent service — independent of Accessibility
 
@@ -112,3 +112,7 @@ The real-device screenshot after installing the signed build reports **AX=true E
 After installing this corrected build: quit every Clipboard process; run `tccutil reset PostEvent dev.clipboard.app` **without sudo**; open the same app from `/Applications`; use `Settings → Paste Diagnostics → Request Event Posting Access`; approve the native prompt; quit and relaunch once more. Then Refresh the diagnostic and confirm `Event Posting (PostEvent): true`. A reset of Accessibility alone will **not** clear a denied PostEvent decision. Do not change SIP or TCC.db.
 
 Sources: [Apple reset documentation](https://developer.apple.com/documentation/xcode/resetting-access-to-protected-resources-in-macos) (PostEvent = sending keystrokes), [Apple CGRequestPostEventAccess](https://developer.apple.com/documentation/coregraphics/cgrequestposteventaccess()), [Apple TCC/PostEvent developer discussion](https://developer.apple.com/forums/thread/842985).
+
+## New PostEvent permission artifact
+
+[Build #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passes **66/66 tests** with Ad-hoc signing and a verified ZIP checksum. After installing this version, **quit Clipboard**, run `tccutil reset PostEvent dev.clipboard.app`, relaunch from `/Applications`, use **Request Event Posting Access** in Settings, approve, fully quit and relaunch again. In the audit, `Event Posting (PostEvent): true` is the gate for the CGEvent shortcut. This build is not proof of a real-world paste until tested on the user Mac.
