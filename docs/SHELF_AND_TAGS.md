@@ -35,3 +35,7 @@ Each content kind has an identifiable colored ribbon and readable label/SF Symbo
 Deterministic tests cover shelf geometry and encrypted tag lifecycle. Animation, Accessibility, Paste and two-screen UX require [real-Mac QA](MAC_DEVICE_QA.md).
 
 There is no network interaction, telemetry or third-party service for the tag system.
+
+## CI build evidence
+
+The 2026-11-13 milestone passed **44/44 automated XCTest cases** and produced an unsigned Universal Release: [GitHub Actions run 43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43417580697). This does not replace real-device animation/focus/UX QA.

@@ -6,7 +6,7 @@ Clipboard یک برنامهٔ Menu Bar است که تاریخچهٔ متن، ل�
 
 **[مشاهده سایت سه‌بعدی Clipboard](https://saeedtqpy.github.io/Clipboard/)** · [English README](README.md) · [دانلود](#دانلود-و-نصب) · [تصاویر برنامه](docs/SCREENSHOTS.md) · [گزارش خطا](https://github.com/SaeedTqpy/Clipboard/issues)
 
-> **نسخهٔ پیش‌نمایش توسعه‌دهندگان — v0.2.0.** در ۱۳ نوامبر ۲۰۲۶، همهٔ **۳۷ تست خودکار** نسخهٔ توسعه‌یافته موفق شدند و خروجی Universal برای Apple Silicon و Intel ساخته شد. تست مجوز Accessibility، Paste واقعی و چندمانیتوره روی مک کاربر همچنان باقی است. این نسخه هنوز تأییدیهٔ انتشار عمومی ندارد.
+> **نسخهٔ پیش‌نمایش توسعه‌دهندگان — v0.2.0.** در ۱۳ نوامبر ۲۰۲۶، همهٔ **۴۴ تست خودکار** نسخهٔ جدید Shelf و تگ‌های رنگی موفق شدند و خروجی Universal برای Apple Silicon و Intel ساخته شد. تست مجوز Accessibility، Paste واقعی و چندمانیتوره روی مک کاربر همچنان باقی است. این نسخه هنوز تأییدیهٔ انتشار عمومی ندارد.
 
 ## تصاویر محیط برنامه
 
@@ -43,7 +43,7 @@ Clipboard یک برنامهٔ Menu Bar است که تاریخچهٔ متن، ل�
 
 ## دانلود و نصب
 
-نسخهٔ تأییدشده در [GitHub Actions Run #43398219188](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188) قرار دارد.
+نسخهٔ تأییدشده در [GitHub Actions Run #43398219188](https://github.com/SaeedTqpy/Clipboard/actions/runs/43417580697) قرار دارد.
 
 ۱. در قسمت **Artifacts** فایل **Clipboard-macOS-unsigned** را دانلود کنید. برای دسترسی ممکن است ورود به GitHub لازم باشد. فایل‌ها فعلاً بعد از **۱۴ روز** منقضی می‌شوند.
 

@@ -60,6 +60,17 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 - [ ] Filter source app/date and clear last 5/15/60 minutes without deleting pins.
 - [ ] Verify text edits update fingerprints and do not silently merge duplicate clips.
 
+## Verified CI milestone — 2026-11-13
+
+- [x] Compiled the latest animated bottom shelf and encrypted color tags on macOS 26.
+- [x] **44/44 XCTest tests passed**, including geometry and tag lifecycle tests.
+- [x] Release compiled for both x86_64 and arm64.
+- [x] Artifact ZIP integrity and inner application archive SHA-256 verified.
+- [x] Restored macOS CI to manual-only after batched validation.
+- [ ] Real-device visual acceptance, Dock/Space transitions, Accessibility and Paste focus checks still required.
+
+Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43417580697).
+
 ## Bottom shelf and encrypted tags
 
 - [ ] On macOS 15 and 26, show the shelf and confirm it slides up from beneath the physical screen edge, without presenting as a centered window.

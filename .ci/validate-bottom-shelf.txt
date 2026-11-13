@@ -1,1 +1,0 @@
-Bottom shelf color tags final validation attempt 3: 44 tests; explicit five-tag limit behavior.
