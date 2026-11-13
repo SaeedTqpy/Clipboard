@@ -1,10 +1,9 @@
 name: Clipboard macOS
 
-# One-time CI validation: clean Shelf footer, then restore manual-only.
+# Intentionally manual: conserve GitHub Actions minutes.
+# Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 concurrency:
   group: clipboard-manual-build
