@@ -75,7 +75,9 @@ Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/ac
 
 - [ ] The Quick Shelf starts at the **physical screen bottom** with no gap, including when a Dock is visible.
 - [ ] The lower shelf corners are square and no drop shadow makes it appear detached.
-- [ ] **Control+Shift+V** opens only Quick Shelf; it does not open the manager. Confirm the active hotkey in Settings if migrated from an older version.
+- [ ] **Win+Shift+V** (default Command+Shift+V on a Mac) opens only Quick Shelf. Verify migration of the old Control+Shift+V default and preservation of other customized shortcuts.
+- [ ] Quick Shelf preview click copies, closes immediately, restores previous application focus, and pastes once. The Copy and menu buttons do not trigger the preview action.
+- [ ] Manager preview click selects only. Without Accessibility permission, Shelf click copies and closes without injecting Cmd+V.
 - [ ] Left-click the menu bar icon: a normal, movable, resizable Clipboard Manager opens; Quick Shelf is hidden.
 - [ ] Right-click the menu bar icon: context menu with Pause/Settings/Quit is displayed.
 - [ ] Open the manager first then press the hotkey: only Quick Shelf remains. Open the shelf first then click the menu bar icon: only Manager remains.

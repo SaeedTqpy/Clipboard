@@ -57,15 +57,15 @@ There is no official signed installer, notarized DMG, App Store release or autom
 ## Getting started
 
 1. Start Clipboard and find its icon in the **menu bar**.
-2. Press **⌃⇧V** (Control+Shift+V, the default on new installations) to reveal the bottom Quick Shelf. Click the **menu bar icon** to open the separate resizable Clipboard Manager. Right-click the menu bar icon for Pause, Settings and Quit.
+2. Press **⌘⇧V** (Command+Shift+V; the **Win + Shift + V** keys on a standard Windows keyboard attached to a Mac) to reveal the bottom Quick Shelf. Click the **menu bar icon** to open the resizable Clipboard Manager. Right-click it for Pause, Settings, and Quit.
 3. **Enable monitoring**. Copy a harmless phrase such as `Clipboard test 001` in Notes.
-4. Search the shelf; click **Copy** to put an item back on the macOS pasteboard.
+4. Search the Quick Shelf and **click a card's header/preview** to copy the item, close the Shelf, restore the previously active app, and paste there. The **Copy** button only copies; **•••** opens more actions without pasting.
 5. To **Paste** into the previously active app, grant Clipboard **Accessibility** permission in system settings. The app verifies the destination process before sending ⌘V, but compatibility depends on the destination app.
 6. Use the card menu to pin, move to a collection, **create or apply colored tags**, add to Paste Stack, delete, or paste supported text as plain text. Click a tag in the horizontal tag rail to filter, or right-click a tag to edit its name/color.
 
 | Shortcut | Behavior |
 | --- | --- |
-| **⌃⇧V** (default) | Show or hide the bottom Quick Shelf; it never opens the manager |
+| **⌘⇧V** (default) | Show or hide the bottom Quick Shelf; with a standard external Windows keyboard this is **Win + Shift + V** |
 | **⌘1 … ⌘9** | Paste one of the first nine currently visible clips if the panel receives the shortcut |
 | **Esc** | Dismiss the shelf |
 | **↑ / ↓** | Select earlier / later clip |
@@ -74,7 +74,7 @@ There is no official signed installer, notarized DMG, App Store release or autom
 | **⌘P** | Pin or unpin selected clip |
 | **⌘Backspace** | Ask to delete selected clip |
 
-The global hotkey can be changed in Settings to several preset combinations. Previously selected shortcuts are preserved during an app upgrade, so select **⌃⇧V** in Settings if the previous version had a different binding. A conflicting replacement is rejected without intentionally unbinding the existing shortcut.
+The global hotkey can be changed in Settings to several presets. Upgrading from the old default **Ctrl+Shift+V** migrates once to **Command+Shift+V**; unrelated custom presets remain unchanged. If your external keyboard has remapped modifiers, check **System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys** to confirm that Win is mapped to Command. A shortcut already occupied by another app cannot be registered. **Accessibility** is required for automatic paste; without permission, clicking the preview copies and closes the Shelf without sending Cmd+V.
 
 ## Privacy and data safety
 

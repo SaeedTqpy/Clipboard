@@ -15,12 +15,16 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 ## On-device gates
 
 - [ ] Start paused, then opt-in. Old clipboard entries must not backfill.
-- [ ] Test **Ctrl+Shift+V** with Notes and Finder frontmost: only the full-width Shelf appears, flush to the **physical bottom edge**; it slides up/down and has square bottom corners. Check the screen under the pointer and Spaces.
+- [ ] Test **Win+Shift+V** on an external Windows keyboard (Command+Shift+V on Mac): only the full-width Shelf appears, flush with the physical bottom edge. Check display, Spaces, and shortcut conflicts.
 - [ ] Left-click the Menu Bar icon to open a distinct **Clipboard Manager** window; right-click for Settings/Quit. Check manager and shelf never remain visible together.
 - [ ] Quit older installed Clipboard instances before opening the new app; otherwise their hotkey registrations can interfere.
 - [ ] Check Reduce Motion: animation disabled, shelf still usable.
 - [ ] Create and apply colored tags on two synthetic clips, filter by a tag, edit it, and confirm encrypted backup restores it.
 - [ ] Test copying and pasting a synthetic text item with and without Accessibility authorization.
+- [ ] Click the **card preview** in Quick Shelf: copy, immediately close, restore Notes/Safari/VS Code focus, and insert the copied content once.
+- [ ] Click **Copy** and the **••• menu** independently: they must not trigger automatic paste.
+- [ ] Click a card in Manager: only select the clip, never auto-paste.
+- [ ] Revoke Accessibility: preview click copies and closes, but does not send keyboard events.
 - [ ] Paste into Notes, Finder, Safari, VS Code, and a Terminal. Verify correct target focus.
 - [ ] Test HTML and RTF formatted copy plus Paste as Plain Text.
 - [ ] Enable optional on-device OCR, copy a demo image, and search recognized text.
