@@ -187,7 +187,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             return
         }
         hidePanel()
-        guard target.activate(options: [.activateIgnoringOtherApps]) else {
+        guard target.activate(options: []) else {
             model.message = "Copied. Could not restore the destination application."
             return
         }

@@ -4,16 +4,28 @@ import SQLite3
 @testable import Clipboard
 
 final class ClipboardStoreTests: XCTestCase {
+    private var temporaryRoots: [URL] = []
+
+    override func tearDownWithError() throws {
+        // All local stores are released when the test method returns; never
+        // unlink SQLite WAL/SHM files while their connection is still open.
+        for root in temporaryRoots {
+            try? FileManager.default.removeItem(at: root)
+        }
+        temporaryRoots.removeAll()
+        try super.tearDownWithError()
+    }
+
     private func temporaryStore() throws -> (ClipboardStore, URL) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("ClipboardTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        temporaryRoots.append(directory)
         return (try ClipboardStore(directoryOverride: directory, testKey: Data(repeating: 0x42, count: 32)), directory)
     }
 
     func testTextSavedAndSearchedWithoutTouchingRealHistory() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         try store.save(ClipPayload(kind: .text, preview: "Engineering handbook", body: "Swift and SQLite"), sourceApp: "Xcode")
         XCTAssertEqual(try store.items(search: "").count, 1)
         XCTAssertEqual(try store.items(search: "Swift").count, 1)
@@ -22,7 +34,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testIdenticalClipboardEntriesAreDeduplicated() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         let payload = ClipPayload(kind: .text, preview: "hello", body: "hello")
         try store.save(payload, sourceApp: "Notes")
         try store.save(payload, sourceApp: "Safari")
@@ -33,7 +44,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testRemovingImageCleansUpAsset() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         let pngData = Data([0x89, 0x50, 0x4E, 0x47]) // Test asset bytes only.
         try store.save(ClipPayload(kind: .image, preview: "Image", imagePNG: pngData), sourceApp: "Preview")
         let items = try store.items(search: "")
@@ -49,7 +59,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testCollectionsPersistAndFilter() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         try store.save(ClipPayload(kind: .text, preview: "Alpha", body: "Alpha"), sourceApp: "Notes")
         try store.save(ClipPayload(kind: .text, preview: "Beta", body: "Beta"), sourceApp: "Notes")
         let all = try store.items(search: "")
@@ -67,7 +76,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testFilterByContentKind() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         try store.save(ClipPayload(kind: .text, preview: "plain", body: "plain"), sourceApp: "Notes")
         try store.save(ClipPayload(kind: .link, preview: "https://example.com", body: "https://example.com"), sourceApp: "Safari")
         XCTAssertEqual(try store.items(search: "", kind: .link).count, 1)
@@ -77,7 +85,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testImageBudgetPrunesUnpinnedImageAssets() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         try store.save(ClipPayload(
             kind: .image, preview: "Test Image",
             imagePNG: Data([0x89, 0x50, 0x4e, 0x47])
@@ -92,7 +99,6 @@ final class ClipboardStoreTests: XCTestCase {
 
     func testEncryptedStoreDoesNotPersistTextInDatabaseFile() throws {
         let (store, root) = try temporaryStore()
-        defer { try? FileManager.default.removeItem(at: root) }
         let secret = "SUPER-SENSITIVE-CLIPBOARD-TOKEN-4250"
         try store.save(ClipPayload(kind: .text, preview: secret, body: secret), sourceApp: "Notes")
         XCTAssertEqual(try store.items(search: "SENSITIVE").count, 1)
@@ -127,7 +133,7 @@ final class ClipboardStoreTests: XCTestCase {
     func testLegacySQLiteAndPNGAreMigratedToEncryptedHistory() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ClipboardLegacy-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: root) }
+        temporaryRoots.append(root)
         let appFolder = root.appendingPathComponent("Clipboard")
         let assetFolder = appFolder.appendingPathComponent("Assets")
         try FileManager.default.createDirectory(
@@ -178,7 +184,7 @@ final class ClipboardStoreTests: XCTestCase {
     func testRecoveryQuarantinesFilesInsteadOfDeletingThem() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ClipboardRecovery-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: root) }
+        temporaryRoots.append(root)
         let key = Data(repeating: 0x42, count: 32)
         do {
             let store = try ClipboardStore(directoryOverride: root, testKey: key)

@@ -34,7 +34,7 @@ final class ClipboardMonitor {
     func start() {
         guard timer == nil else { return }
         let timer = Timer(timeInterval: 0.65, repeats: true) { [weak self] _ in
-            self?.pollOnce()
+            Task { @MainActor [weak self] in self?.pollOnce() }
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer

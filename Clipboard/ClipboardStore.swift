@@ -574,6 +574,8 @@ final class ClipboardStore {
                 budget -= entry.size
             }
         }
+        // Row deletes above invalidate the decoded cache used by items() and GC.
+        decryptedCache = nil
         try removeUnreferencedAssets()
     }
 
