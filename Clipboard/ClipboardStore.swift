@@ -27,6 +27,8 @@ private struct SealedClipContent: Codable {
     var filePath: String?
     var sourceApp: String
     var collection: String?
+    var richData: Data? = nil
+    var richType: String? = nil
 }
 
 private struct ClipboardBackupDocument: Codable {
@@ -271,6 +273,7 @@ final class ClipboardStore {
         guard payload.preview.utf8.count <= 2 * 1024 * 1024,
               (payload.body?.utf8.count ?? 0) <= 2 * 1024 * 1024,
               (payload.imagePNG?.count ?? 0) <= 12 * 1024 * 1024,
+              (payload.richData?.count ?? 0) <= 2 * 1024 * 1024,
               (payload.filePath?.utf8.count ?? 0) <= 100_000 else {
             throw ClipboardStoreError.excessivePayload
         }
@@ -290,7 +293,9 @@ final class ClipboardStore {
             assetFilename: imageFilename,
             filePath: payload.filePath,
             sourceApp: sourceApp,
-            collection: existing?.item.collection ?? importedCollection
+            collection: existing?.item.collection ?? importedCollection,
+            richData: payload.richData,
+            richType: payload.richType
         )
         let sealed = try seal(record, id: id)
         if let existing {
@@ -376,7 +381,9 @@ final class ClipboardStore {
                 createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 2)),
                 pinned: sqlite3_column_int(stmt, 3) != 0,
                 fingerprint: fingerprint,
-                collection: decoded.collection
+                collection: decoded.collection,
+                richData: decoded.richData,
+                richType: decoded.richType
             ),
             decoded
         )
@@ -398,6 +405,7 @@ final class ClipboardStore {
                     total + value.item.preview.utf8.count
                         + (value.item.body?.utf8.count ?? 0)
                         + (value.item.filePath?.utf8.count ?? 0)
+                        + (value.item.richData?.count ?? 0)
                 }
                 if footprint <= 32 * 1024 * 1024 {
                     decryptedCache = rows
@@ -579,7 +587,10 @@ final class ClipboardStore {
         var bytes = 0
         for row in try allRows() {
             let image = try imageData(for: row.item)
-            bytes += row.item.preview.utf8.count + (row.item.body?.utf8.count ?? 0) + (image?.count ?? 0)
+            bytes += row.item.preview.utf8.count
+                + (row.item.body?.utf8.count ?? 0)
+                + (row.item.richData?.count ?? 0)
+                + (image?.count ?? 0)
             guard bytes <= 75 * 1024 * 1024 else { throw ClipboardBackupError.tooLarge }
             entries.append(ClipboardBackupDocument.Entry(
                 content: row.record,
@@ -602,10 +613,12 @@ final class ClipboardStore {
         for entry in doc.entries {
             total += entry.content.preview.utf8.count
                 + (entry.content.body?.utf8.count ?? 0)
+                + (entry.content.richData?.count ?? 0)
                 + (entry.imageData?.count ?? 0)
             guard total <= 75 * 1024 * 1024,
                   entry.content.preview.utf8.count <= 2 * 1024 * 1024,
                   (entry.content.body?.utf8.count ?? 0) <= 2 * 1024 * 1024,
+                  (entry.content.richData?.count ?? 0) <= 2 * 1024 * 1024,
                   (entry.imageData?.count ?? 0) <= 12 * 1024 * 1024,
                   ClipKind(rawValue: entry.content.kind) != nil,
                   entry.createdAt.isFinite else {
@@ -622,7 +635,8 @@ final class ClipboardStore {
                 let payload = ClipPayload(
                     kind: kind, preview: entry.content.preview,
                     body: entry.content.body, imagePNG: entry.imageData,
-                    filePath: entry.content.filePath
+                    filePath: entry.content.filePath,
+                    richData: entry.content.richData, richType: entry.content.richType
                 )
                 try saveInternal(
                     payload,

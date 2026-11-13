@@ -32,4 +32,18 @@ final class ClipTextTests: XCTestCase {
         let b = ClipPayload(kind: .link, preview: "test", body: "test")
         XCTAssertNotEqual(a.fingerprint, b.fingerprint)
     }
+
+    func testRichTextFingerprintIncludesRichFlavor() {
+        let first = ClipPayload(
+            kind: .richText, preview: "Hello", body: "Hello",
+            richData: Data("<b>Hello</b>".utf8),
+            richType: "public.html"
+        )
+        let second = ClipPayload(
+            kind: .richText, preview: "Hello", body: "Hello",
+            richData: Data("<i>Hello</i>".utf8),
+            richType: "public.html"
+        )
+        XCTAssertNotEqual(first.fingerprint, second.fingerprint)
+    }
 }

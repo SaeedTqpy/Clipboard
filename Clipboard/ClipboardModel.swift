@@ -176,6 +176,18 @@ final class ClipboardModel: ObservableObject {
         switch item.kind {
         case .text, .link:
             success = board.setString(item.body ?? item.preview, forType: .string)
+        case .richText:
+            let plain = board.setString(item.body ?? item.preview, forType: .string)
+            if let data = item.richData, let rawType = item.richType,
+               [NSPasteboard.PasteboardType.rtf.rawValue,
+                NSPasteboard.PasteboardType.html.rawValue].contains(rawType) {
+                let rich = board.setData(
+                    data, forType: NSPasteboard.PasteboardType(rawType)
+                )
+                success = plain || rich
+            } else {
+                success = plain
+            }
         case .file:
             if let stored = item.filePath {
                 let paths = (try? JSONDecoder().decode([String].self, from: Data(stored.utf8))) ?? [stored]
@@ -201,6 +213,20 @@ final class ClipboardModel: ObservableObject {
         }
         onClipboardWrite?()
         if !success { message = "Could not copy this item." }
+        return success
+    }
+
+    @discardableResult
+    func copyAsPlainText(_ item: ClipItem) -> Bool {
+        guard [.text, .link, .richText].contains(item.kind) else {
+            message = "This item has no plain text representation."
+            return false
+        }
+        let board = NSPasteboard.general
+        board.clearContents()
+        let success = board.setString(item.body ?? item.preview, forType: .string)
+        onClipboardWrite?()
+        if !success { message = "Could not copy plain text." }
         return success
     }
 

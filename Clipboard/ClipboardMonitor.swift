@@ -101,7 +101,18 @@ final class ClipboardMonitor {
            text.utf8.count <= 2 * 1024 * 1024 {
             let preview = ClipText.preview(text)
             guard !preview.isEmpty else { return }
-            capture(ClipPayload(kind: ClipText.kind(for: text), preview: preview, body: text), appName)
+            if let richType = pasteboard.availableType(from: [.rtf, .html]),
+               let richBytes = pasteboard.data(forType: richType),
+               richBytes.count <= 2 * 1024 * 1024 {
+                capture(ClipPayload(
+                    kind: .richText, preview: preview, body: text,
+                    richData: richBytes, richType: richType.rawValue
+                ), appName)
+            } else {
+                capture(ClipPayload(
+                    kind: ClipText.kind(for: text), preview: preview, body: text
+                ), appName)
+            }
         }
     }
 }

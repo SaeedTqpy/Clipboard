@@ -7,6 +7,7 @@ struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
     let onDismiss: () -> Void
     let onPaste: (ClipItem) -> Void
+    let onPastePlain: (ClipItem) -> Void
     let onPasteNext: () -> Void
 
     @FocusState private var searchFocused: Bool
@@ -139,6 +140,7 @@ struct ClipboardPanelView: View {
                                 thumbnailSource: model.thumbnailSource(for: item),
                                 onCopy: { _ = model.copy(item) },
                                 onPaste: { onPaste(item) },
+                                onPastePlain: { onPastePlain(item) },
                                 onPin: { model.togglePinned(item) },
                                 onQueue: { model.addToPasteStack(item) },
                                 onDelete: { model.delete(item) },
@@ -240,6 +242,7 @@ private struct ClipCard: View {
     let thumbnailSource: ClipboardThumbnailSource?
     let onCopy: () -> Void
     let onPaste: () -> Void
+    let onPastePlain: () -> Void
     let onPin: () -> Void
     let onQueue: () -> Void
     let onDelete: () -> Void
@@ -300,6 +303,9 @@ private struct ClipCard: View {
                 Spacer(minLength: 0)
                 Menu {
                     Button("Add to Paste Stack", action: onQueue)
+                    if [.richText, .text, .link].contains(item.kind) {
+                        Button("Paste as Plain Text", action: onPastePlain)
+                    }
                     Divider()
                     Button(item.pinned ? "Unpin" : "Pin", action: onPin)
                     Menu("Move to Collection") {
