@@ -15,7 +15,9 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 ## On-device gates
 
 - [ ] Start paused, then opt-in. Old clipboard entries must not backfill.
-- [ ] Test ⌘⇧V with Notes and Finder frontmost; reveal/hide, switch Spaces, move cursor between monitors.
+- [ ] Test ⌘⇧V with Notes and Finder frontmost; shelf must slide up from the bottom and hide down, not open centered. Check the screen under the pointer and Spaces.
+- [ ] Check Reduce Motion: animation disabled, shelf still usable.
+- [ ] Create and apply colored tags on two synthetic clips, filter by a tag, edit it, and confirm encrypted backup restores it.
 - [ ] Test copying and pasting a synthetic text item with and without Accessibility authorization.
 - [ ] Paste into Notes, Finder, Safari, VS Code, and a Terminal. Verify correct target focus.
 - [ ] Test HTML and RTF formatted copy plus Paste as Plain Text.

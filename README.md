@@ -19,8 +19,9 @@ Clipboard lives in the menu bar and lets you find, organize, and reuse copied te
 | Area | Capabilities |
 | --- | --- |
 | Clipboard history | Text, HTTP(S) links, HTML/RTF, images and single/multiple file references |
-| Native shelf | Floating horizontal cards, search, quick copy and paste |
+| Bottom shelf | Display-wide horizontal history slides up from above the Dock and dismisses downward; reduced-motion accessible |
 | Organization | Pinning, editable titles, text editing, collections, app/date/kind filters and bulk recent cleanup |
+| Color tags | Up to five encrypted tags per clip; custom palettes, global tag edits, search, filters and encrypted backup |
 | Searchable images | Optional, **on-device Apple Vision OCR**; detected text is encrypted at rest |
 | Reusable snippets | Create or convert text to pinned snippets; no system-wide auto-expansion |
 | Quick paste | Configurable global shortcut, ↑↓ selection, Return paste, Option+Return plain, ⌘1–9 quick picks |
@@ -59,7 +60,7 @@ There is no official signed installer, notarized DMG, App Store release or autom
 3. **Enable monitoring**. Copy a harmless phrase such as `Clipboard test 001` in Notes.
 4. Search the shelf; click **Copy** to put an item back on the macOS pasteboard.
 5. To **Paste** into the previously active app, grant Clipboard **Accessibility** permission in system settings. The app verifies the destination process before sending ⌘V, but compatibility depends on the destination app.
-6. Use the card menu to pin, move to a collection, add to Paste Stack, delete, or paste supported text as plain text.
+6. Use the card menu to pin, move to a collection, **create or apply colored tags**, add to Paste Stack, delete, or paste supported text as plain text. Click a tag in the horizontal tag rail to filter, or right-click a tag to edit its name/color.
 
 | Shortcut | Behavior |
 | --- | --- |

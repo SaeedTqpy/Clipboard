@@ -60,6 +60,22 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 - [ ] Filter source app/date and clear last 5/15/60 minutes without deleting pins.
 - [ ] Verify text edits update fingerprints and do not silently merge duplicate clips.
 
+## Bottom shelf and encrypted tags
+
+- [ ] On macOS 15 and 26, show the shelf and confirm it slides up from beneath the physical screen edge, without presenting as a centered window.
+- [ ] Verify the shelf anchors immediately above the Dock's visible area and spans almost all available display width.
+- [ ] With two monitors of different positions/resolutions, invoke the hotkey with the pointer on each screen; no clipping or wrong-screen display.
+- [ ] Press Escape or click outside; shelf slides downward and becomes non-interactive.
+- [ ] Activate Paste from the shelf; panel releases focus immediately and sends Cmd+V only to the expected target application.
+- [ ] Enable Reduce Motion; show/hide skips animations completely.
+- [ ] Check light/dark modes, 125% zoom, VoiceOver and 650pt-wide window fallbacks.
+- [ ] Capture text, links, images, file references and HEX color; confirm type ribbons have distinct colors.
+- [ ] Create a custom tag, reuse it on a second clip, click tag to filter, rename/recolor via context menu, and remove it from one clip.
+- [ ] Confirm five-tag limit, disappearance when removing the last reference, and search by encrypted tag name.
+- [ ] Verify old encrypted history with missing tags field still opens with empty tags.
+- [ ] Export encrypted backup and restore to isolated store; tag names/colors and associations survive.
+- [ ] Inspect SQLite: sensitive tag names must not appear as plaintext.
+
 ## Performance and quality
 
 - [ ] Fast scrolling of 500 clips with many images doesn't trigger large CPU spikes.
