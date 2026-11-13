@@ -1,0 +1,1 @@
+One macOS validation run for session-level Cmd-V, focus-bound dispatch, redacted Paste Diagnostics and regression tests.
