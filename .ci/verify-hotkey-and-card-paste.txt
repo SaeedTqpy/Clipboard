@@ -1,1 +1,0 @@
-One CI run for default Win(Command)+Shift+V, migration, card preview click-to-paste and manager selection behavior.
