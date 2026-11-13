@@ -666,6 +666,7 @@ private enum ClipboardTagSheet: Identifiable {
 
 private struct ClipCard: View {
     let item: ClipItem
+    let density: ClipboardShelfDensity
     let isSelected: Bool
     let thumbnailSource: ClipboardThumbnailSource?
     let onCopy: () -> Void
@@ -687,108 +688,48 @@ private struct ClipCard: View {
     let onMove: (String?) -> Void
     let onNewCollection: () -> Void
 
+    @State private var hovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let radius: CGFloat = 21
+
+    private var appearsToBeCode: Bool {
+        item.preview.contains("\n") &&
+            (item.preview.contains("{") ||
+             item.preview.contains("SELECT ") ||
+             item.preview.contains("const ") ||
+             item.preview.contains("def "))
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // This button covers only the non-interactive card preview.
-            // Copy / Paste / the action menu remain independent controls.
             Button(action: onPrimaryClick) {
-                VStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                Image(systemName: item.kind.symbol)
-                Text(item.kind.title.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                Spacer()
-                Text(item.pinned ? "PINNED" : "RECENT")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .opacity(0.76)
-                if item.pinned { Image(systemName: "pin.fill") }
-            }
-            .foregroundStyle(Color.black.opacity(0.89))
-            .padding(.horizontal, 13)
-            .frame(height: 34)
-            .background(item.kind.ribbonColor)
+                VStack(alignment: .leading, spacing: 0) {
+                    typeRibbon
+                    VStack(alignment: .leading, spacing: 7) {
+                        previewContent
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                            .frame(
+                                height: density.previewHeight,
+                                alignment: .topLeading
+                            )
+                            .clipped()
 
-            VStack(alignment: .leading, spacing: 6) {
-                if let title = item.displayName {
-                    Text(title)
-                        .font(.system(size: 12, weight: .bold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                        cardTags
+                            .frame(height: 24)
 
-                Group {
-                    if item.kind == .color,
-                       let rgba = ClipColor.hexValue(item.body ?? item.preview) {
-                        VStack(spacing: 5) {
-                            RoundedRectangle(cornerRadius: 9)
-                                .fill(Color(red: rgba.red, green: rgba.green, blue: rgba.blue)
-                                        .opacity(rgba.alpha))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .strokeBorder(.primary.opacity(0.14))
-                                }
-                            Text(item.body ?? item.preview)
-                                .font(.system(size: 11, design: .monospaced))
-                        }
-                    } else if item.kind == .image {
-                        ClipboardThumbnailView(source: thumbnailSource)
-                            .overlay(alignment: .bottomTrailing) {
-                                if item.recognizedText != nil {
-                                    Image(systemName: "text.viewfinder")
-                                        .padding(4)
-                                        .background(.regularMaterial, in: Circle())
-                                }
-                            }
-                    } else {
-                        Text(item.preview)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .lineLimit(item.displayName == nil ? 6 : 4)
-                            .foregroundStyle(.primary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity,
-                                   alignment: .topLeading)
+                        cardMetadata
+                            .frame(height: 20)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 13)
+                    .padding(.bottom, 4)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: item.displayName == nil ? 78 : 61)
-
-                if !item.tags.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(item.tags.prefix(2)) { tag in
-                            ClipTagPill(tag: tag, selected: false)
-                        }
-                        if item.tags.count > 2 {
-                            Text("+\(item.tags.count - 2)")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(height: 21)
-                } else if let collection = item.collection {
-                    Label(collection, systemImage: "folder")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(height: 21)
-                } else {
-                    Spacer(minLength: 21)
-                        .frame(height: 21)
-                }
-
-                HStack {
-                    Text(item.sourceApp)
-                        .lineLimit(1)
-                    Spacer()
-                    Text(item.createdAt, style: .relative)
-                        .lineLimit(1)
-                }
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 11)
-                .padding(.top, 11)
-                }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: radius))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(
@@ -796,87 +737,282 @@ private struct ClipCard: View {
                     ? "Paste \(item.displayName ?? item.preview) into previous application"
                     : "Select \(item.displayName ?? item.preview)"
             )
-            .help(primaryClickPastes ? "Click to paste and close the shelf" : "Select clip")
+            .accessibilityHint(
+                primaryClickPastes
+                    ? "Copies and pastes once, then closes the quick shelf"
+                    : "Selects the clip without pasting"
+            )
+            .help(
+                primaryClickPastes
+                    ? "Click this preview to paste into the previous app"
+                    : "Select clip"
+            )
 
-            HStack(spacing: 6) {
-                    Button("Copy", action: onCopy)
-                        .buttonStyle(.bordered)
-                        .help("Copy this clip to the system pasteboard")
-                    Button("Paste", action: onPaste)
-                        .buttonStyle(.borderedProminent)
-                        .tint(item.kind.ribbonColor)
-                        .foregroundStyle(.black)
-                        .help("Paste into the previous application")
-                    Spacer(minLength: 0)
-                    Menu {
-                        Button("Edit / Rename…", systemImage: "pencil", action: onEdit)
-                        if [.text, .link, .richText, .color].contains(item.kind) {
-                            Button("Save as Snippet", systemImage: "text.book.closed",
-                                   action: onSaveSnippet)
-                        }
-                        if item.recognizedText != nil {
-                            Button("Copy Text from Image", systemImage: "text.viewfinder",
-                                   action: onCopyRecognizedText)
-                        }
-                        Divider()
-                        Menu("Colored Tags") {
-                            ForEach(tags) { tag in
-                                if !item.tags.contains(where: { $0.id == tag.id }) {
-                                    Button(tag.name) { onApplyTag(tag) }
-                                }
-                            }
-                            Button("New Color Tag…", action: onCreateTag)
-                            if !item.tags.isEmpty {
-                                Divider()
-                                ForEach(item.tags) { tag in
-                                    Button("Remove \(tag.name)") { onRemoveTag(tag.id) }
-                                }
-                            }
-                        }
-                        Button("Add to Paste Stack", action: onQueue)
-                        if [.richText, .text, .link, .color].contains(item.kind) {
-                            Button("Paste as Plain Text", action: onPastePlain)
-                        }
-                        Divider()
-                        Button(item.pinned ? "Unpin" : "Pin", action: onPin)
-                        Menu("Move to Collection") {
-                            Button("Unassigned") { onMove(nil) }
-                            ForEach(collections, id: \.self) { name in
-                                Button(name) { onMove(name) }
-                            }
-                            Divider()
-                            Button("New Collection…", action: onNewCollection)
-                        }
-                        Divider()
-                        Button("Delete", role: .destructive, action: onDelete)
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .accessibilityLabel("More actions for \(item.displayName ?? item.preview)")
-                    .menuStyle(.borderlessButton)
-                    .frame(width: 27)
-                }
-                .controlSize(.small)
-                .padding(.horizontal, 11)
-                .padding(.top, 6)
-                .padding(.bottom, 11)
+            Spacer(minLength: 0)
+            actionRow
         }
-        .frame(width: 230, height: 224)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.93),
-                    in: RoundedRectangle(cornerRadius: 15))
-        .clipShape(RoundedRectangle(cornerRadius: 15))
+        .frame(width: density.cardWidth, height: density.cardHeight)
+        .background {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(.thinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(item.kind.ribbonColor.opacity(hovering ? 0.075 : 0.034))
+                }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 15)
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .strokeBorder(
-                    isSelected ? item.kind.ribbonColor : .white.opacity(0.15),
-                    lineWidth: isSelected ? 2 : 1
+                    isSelected
+                        ? item.kind.ribbonColor.opacity(0.88)
+                        : Color.white.opacity(hovering ? 0.36 : 0.16),
+                    lineWidth: isSelected ? 1.8 : 1
                 )
                 .allowsHitTesting(false)
         }
-        .shadow(color: isSelected ? item.kind.ribbonColor.opacity(0.12) : .clear,
-                radius: 12)
+        .shadow(
+            color: .black.opacity(hovering ? 0.19 : 0.10),
+            radius: hovering ? 23 : 13,
+            y: hovering ? 10 : 5
+        )
+        .scaleEffect(hovering && !reduceMotion ? 1.012 : 1)
+        .offset(y: hovering && !reduceMotion ? -3 : 0)
+        .animation(
+            reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.84),
+            value: hovering
+        )
+        .onHover { hovering = $0 }
         .accessibilityElement(children: .contain)
+    }
+
+    private var typeRibbon: some View {
+        HStack(spacing: 9) {
+            Image(systemName: item.kind.symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .background(
+                    item.kind.ribbonColor.opacity(0.18),
+                    in: RoundedRectangle(cornerRadius: 7)
+                )
+            Text(item.kind.title.uppercased())
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .tracking(0.7)
+            Spacer(minLength: 4)
+            if item.pinned {
+                Label("PINNED", systemImage: "pin.fill")
+                    .font(.system(size: 10, weight: .semibold))
+            } else {
+                Text("RECENT")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 15)
+        .frame(height: 43)
+        .background {
+            LinearGradient(
+                colors: [
+                    item.kind.ribbonColor.opacity(0.26),
+                    item.kind.ribbonColor.opacity(0.07)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+        .overlay(alignment: .top) {
+            item.kind.ribbonColor.opacity(0.88)
+                .frame(height: 3)
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var previewContent: some View {
+        if item.kind == .color,
+           let rgba = ClipColor.hexValue(item.body ?? item.preview) {
+            VStack(alignment: .leading, spacing: 9) {
+                RoundedRectangle(cornerRadius: 11)
+                    .fill(Color(
+                        red: rgba.red, green: rgba.green,
+                        blue: rgba.blue
+                    ).opacity(rgba.alpha))
+                    .frame(height: density.previewHeight - 40)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 11)
+                            .strokeBorder(.primary.opacity(0.15))
+                    }
+                Text(item.body ?? item.preview)
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+            }
+        } else if item.kind == .image {
+            ClipboardThumbnailView(source: thumbnailSource)
+                .frame(maxWidth: .infinity)
+                .frame(height: density.previewHeight - 2)
+                .clipShape(RoundedRectangle(cornerRadius: 11))
+                .overlay(alignment: .bottomTrailing) {
+                    if item.recognizedText != nil {
+                        Image(systemName: "text.viewfinder")
+                            .font(.system(size: 12, weight: .medium))
+                            .padding(7)
+                            .background(.regularMaterial, in: Circle())
+                            .padding(6)
+                    }
+                }
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                if let title = item.displayName {
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                }
+                if item.kind == .link,
+                   let host = URL(string: item.preview)?.host {
+                    Label(host, systemImage: "globe")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(item.kind.ribbonColor)
+                        .lineLimit(1)
+                }
+                Text(item.preview)
+                    .font(
+                        appearsToBeCode
+                            ? .system(size: 12, weight: .medium, design: .monospaced)
+                            : .system(size: 13, weight: .medium)
+                    )
+                    .lineSpacing(3)
+                    .lineLimit(item.displayName == nil ? 7 : 5)
+                    .multilineTextAlignment(.leading)
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .topLeading
+                    )
+                    .textSelection(.disabled)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cardTags: some View {
+        if !item.tags.isEmpty {
+            HStack(spacing: 5) {
+                ForEach(item.tags.prefix(2)) { tag in
+                    ClipTagPill(tag: tag, selected: false)
+                }
+                if item.tags.count > 2 {
+                    Text("+\(item.tags.count - 2)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } else if let collection = item.collection {
+            Label(collection, systemImage: "folder")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        } else {
+            Text(" ")
+                .font(.caption)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var cardMetadata: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "app.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Text(item.sourceApp)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Image(systemName: "clock")
+                .font(.system(size: 10))
+            Text(item.createdAt, style: .relative)
+                .lineLimit(1)
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(.secondary)
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: 8) {
+            Button(action: onCopy) {
+                Label("Copy", systemImage: "doc.on.doc")
+                    .frame(minWidth: 65)
+            }
+            .buttonStyle(.bordered)
+            .help("Copy without automatic paste")
+
+            Button(action: onPaste) {
+                Label("Paste", systemImage: "arrow.down.to.line")
+                    .frame(minWidth: 75)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(item.kind.ribbonColor)
+            .help("Paste into the previous application")
+
+            Spacer(minLength: 0)
+            moreActionsMenu
+        }
+        .controlSize(.regular)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.primary.opacity(0.032))
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            Button("Edit / Rename…", systemImage: "pencil", action: onEdit)
+            if [.text, .link, .richText, .color].contains(item.kind) {
+                Button("Save as Snippet", systemImage: "text.book.closed",
+                       action: onSaveSnippet)
+            }
+            if item.recognizedText != nil {
+                Button("Copy Text from Image", systemImage: "text.viewfinder",
+                       action: onCopyRecognizedText)
+            }
+            Divider()
+            Menu("Colored Tags") {
+                ForEach(tags) { tag in
+                    if !item.tags.contains(where: { $0.id == tag.id }) {
+                        Button(tag.name) { onApplyTag(tag) }
+                    }
+                }
+                Button("New Color Tag…", action: onCreateTag)
+                if !item.tags.isEmpty {
+                    Divider()
+                    ForEach(item.tags) { tag in
+                        Button("Remove \(tag.name)") { onRemoveTag(tag.id) }
+                    }
+                }
+            }
+            Button("Add to Paste Stack", action: onQueue)
+            if [.richText, .text, .link, .color].contains(item.kind) {
+                Button("Paste as Plain Text", action: onPastePlain)
+            }
+            Divider()
+            Button(item.pinned ? "Unpin" : "Pin", action: onPin)
+            Menu("Move to Collection") {
+                Button("Unassigned") { onMove(nil) }
+                ForEach(collections, id: \.self) { name in
+                    Button(name) { onMove(name) }
+                }
+                Divider()
+                Button("New Collection…", action: onNewCollection)
+            }
+            Divider()
+            Button("Delete", role: .destructive, action: onDelete)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 31, height: 29)
+        }
+        .accessibilityLabel(
+            "More actions for \(item.displayName ?? item.preview)"
+        )
+        .menuStyle(.borderlessButton)
+        .help("Organize, pin, edit or delete")
     }
 }
 
