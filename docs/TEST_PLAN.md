@@ -195,3 +195,15 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [x] Verified inner ZIP SHA-256 matches published SHA256SUMS exactly.
 - [x] Independent PostEvent denial diagnostic and permission request path are implemented and unit-tested.
 - [ ] Device acceptance: reset only PostEvent for this exact build, request PostEvent, restart, verify preflight true and a single successful Paste in Notes.
+
+
+## Native Liquid Glass redesign — visual acceptance
+
+- [ ] macOS 26 glass shell and floating toolbar controls use system glass rather than an opaque black surface.
+- [ ] macOS 15 fallback uses genuine system materials and remains readable.
+- [ ] Comfortable cards are 322×283 pt; Compact 278×243 pt and changes Shelf height immediately.
+- [ ] Dock bottom remains visible in front of the Shelf; window touches physical bottom, content is padded above Dock.
+- [ ] Dock on left/right does not create a false bottom gap. Secondary screens and negative origins work.
+- [ ] User search, filters, tags, metadata and error messages stay readable in dark and light themes.
+- [ ] Card hover respects Reduce Motion. No nested card buttons and no click interception by decorations.
+- [ ] Paste and manager navigation behavior from existing validated tests remain intact.

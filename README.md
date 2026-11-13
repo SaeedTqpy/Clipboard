@@ -165,3 +165,8 @@ Apple explicitly lists **PostEvent** as its own TCC service for sending keystrok
 
 
 **PostEvent permission fix (2026-11-13):** [CI run 43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passed **66/66 XCTest cases** and produced a verified ad-hoc signed Universal app. This version distinguishes the independently controlled macOS PostEvent keystroke service from AXUIElement Accessibility and exposes a dedicated `Request Event Posting Access` button. Once installed, `AX=true EVENT=false` must be addressed with `tccutil reset PostEvent dev.clipboard.app`, not repeated Accessibility resets. Verify the TCC grant and insertion on the Mac itself; CI cannot certify them.
+
+
+## Premium Glass Shelf (macOS 26+)
+
+The redesigned Quick Shelf is pinned to the **physical bottom edge** and visually meets the Dock, while its controls remain unobscured. It uses **native Liquid Glass** on macOS 26 and system vibrancy on macOS 15, with larger 322pt cards, readable type-specific previews, softer colors, hover feedback, an accessible filter toolbar and a **Comfortable/Compact** density menu. Compact uses 278pt cards and is selected automatically on very short displays. Changing density resizes the Shelf; it does not change clipboard history or security. **One-click paste behavior is preserved**: selecting the card preview pastes; Copy and More do not. Read the [design system and real-device QA](docs/SHELF_AND_TAGS.md).
