@@ -37,6 +37,8 @@ struct ClipItem: Identifiable, Equatable {
     let collection: String?
     var richData: Data? = nil
     var richType: String? = nil
+    var displayName: String? = nil
+    var recognizedText: String? = nil
 }
 
 struct ClipPayload {
@@ -47,12 +49,14 @@ struct ClipPayload {
     let filePath: String?
     let richData: Data?
     let richType: String?
+    let recognizedText: String?
     let fingerprint: String
 
     init(
         kind: ClipKind, preview: String, body: String? = nil,
         imagePNG: Data? = nil, filePath: String? = nil,
-        richData: Data? = nil, richType: String? = nil
+        richData: Data? = nil, richType: String? = nil,
+        recognizedText: String? = nil
     ) {
         self.kind = kind
         self.preview = preview
@@ -61,6 +65,7 @@ struct ClipPayload {
         self.filePath = filePath
         self.richData = richData
         self.richType = richType
+        self.recognizedText = recognizedText
         var data = Data(kind.rawValue.utf8)
         if let body { data.append(contentsOf: body.utf8) }
         if let filePath { data.append(contentsOf: filePath.utf8) }

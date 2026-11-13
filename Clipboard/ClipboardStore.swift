@@ -29,6 +29,8 @@ private struct SealedClipContent: Codable {
     var collection: String?
     var richData: Data? = nil
     var richType: String? = nil
+    var displayName: String? = nil
+    var recognizedText: String? = nil
 }
 
 private struct ClipboardBackupDocument: Codable {
@@ -305,7 +307,9 @@ final class ClipboardStore {
             sourceApp: sourceApp,
             collection: existing?.item.collection ?? importedCollection,
             richData: payload.richData,
-            richType: payload.richType
+            richType: payload.richType,
+            displayName: existing?.record.displayName,
+            recognizedText: payload.recognizedText ?? existing?.record.recognizedText
         )
         let sealed = try seal(record, id: id)
         if let existing {
@@ -393,7 +397,9 @@ final class ClipboardStore {
                 fingerprint: fingerprint,
                 collection: decoded.collection,
                 richData: decoded.richData,
-                richType: decoded.richType
+                richType: decoded.richType,
+                displayName: decoded.displayName,
+                recognizedText: decoded.recognizedText
             ),
             decoded
         )
@@ -416,6 +422,8 @@ final class ClipboardStore {
                         + (value.item.body?.utf8.count ?? 0)
                         + (value.item.filePath?.utf8.count ?? 0)
                         + (value.item.richData?.count ?? 0)
+                        + (value.item.recognizedText?.utf8.count ?? 0)
+                        + (value.item.displayName?.utf8.count ?? 0)
                 }
                 if footprint <= 32 * 1024 * 1024 {
                     decryptedCache = rows
@@ -442,6 +450,8 @@ final class ClipboardStore {
             if let kind, item.kind != kind { continue }
             if !terms.allSatisfy({
                 item.preview.localizedStandardContains($0)
+                || (item.displayName?.localizedStandardContains($0) ?? false)
+                || (item.recognizedText?.localizedStandardContains($0) ?? false)
                 || (item.body?.localizedStandardContains($0) ?? false)
             }) { continue }
             result.append(item)
@@ -454,6 +464,79 @@ final class ClipboardStore {
         Array(Set(try allRows().compactMap { $0.item.collection })).sorted {
             $0.localizedStandardCompare($1) == .orderedAscending
         }
+    }
+
+    func rename(id: String, to proposedName: String?) throws {
+        let name = proposedName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (name?.count ?? 0) <= 120 else {
+            throw ClipboardStoreError.database("Title must be at most 120 characters.")
+        }
+        try updateRecord(id: id) { record in
+            record.displayName = name?.isEmpty == true ? nil : name
+        }
+    }
+
+    /// Edit text without changing its immutable row identity, pins or collection.
+    /// The content fingerprint must change, otherwise future deduplication breaks.
+    func editText(id: String, newText: String) throws {
+        guard !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              newText.utf8.count <= 2 * 1024 * 1024 else {
+            throw ClipboardStoreError.database("Text must contain 1–2 MiB of UTF-8 content.")
+        }
+        let lookup = try prepare("""
+            SELECT id,fingerprint,created_at,pinned,sealed
+            FROM secure_clips WHERE id=?;
+            """)
+        bind(id, to: 1, in: lookup)
+        let status = sqlite3_step(lookup)
+        guard status == SQLITE_ROW else {
+            sqlite3_finalize(lookup)
+            if status == SQLITE_DONE { return }
+            throw sqliteError()
+        }
+        let original: (item: ClipItem, record: SealedClipContent)
+        do { original = try unpackRow(lookup) }
+        catch { sqlite3_finalize(lookup); throw error }
+        sqlite3_finalize(lookup)
+        guard [.text, .link, .richText].contains(original.item.kind) else {
+            throw ClipboardStoreError.database("Only text-based clips can be edited.")
+        }
+        let kind = ClipText.kind(for: newText)
+        let payload = ClipPayload(
+            kind: kind, preview: ClipText.preview(newText), body: newText
+        )
+        let newFingerprint = vault.fingerprint(for: payload.fingerprint)
+        if let matching = try rowForFingerprint(newFingerprint), matching.item.id != id {
+            throw ClipboardStoreError.database("This text already exists in history.")
+        }
+        var record = original.record
+        record.kind = kind.rawValue
+        record.preview = payload.preview
+        record.body = newText
+        record.richData = nil
+        record.richType = nil
+        record.recognizedText = nil
+        let update = try prepare(
+            "UPDATE secure_clips SET fingerprint=?, sealed=? WHERE id=?;"
+        )
+        defer { sqlite3_finalize(update) }
+        bind(newFingerprint, to: 1, in: update)
+        bind(try seal(record, id: id), to: 2, in: update)
+        bind(id, to: 3, in: update)
+        try stepDone(update)
+        decryptedCache = nil
+    }
+
+    func saveAsSnippet(id: String, title: String) throws {
+        let safeTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !safeTitle.isEmpty, safeTitle.count <= 120 else {
+            throw ClipboardStoreError.database("A snippet needs a title of up to 120 characters.")
+        }
+        try updateRecord(id: id) { record in
+            record.collection = "Snippets"
+            record.displayName = safeTitle
+        }
+        try setPinned(true, id: id)
     }
 
     func setCollection(_ name: String?, id: String) throws {
@@ -603,6 +686,8 @@ final class ClipboardStore {
             bytes += row.item.preview.utf8.count
                 + (row.item.body?.utf8.count ?? 0)
                 + (row.item.richData?.count ?? 0)
+                + (row.item.displayName?.utf8.count ?? 0)
+                + (row.item.recognizedText?.utf8.count ?? 0)
                 + (image?.count ?? 0)
             guard bytes <= 75 * 1024 * 1024 else { throw ClipboardBackupError.tooLarge }
             entries.append(ClipboardBackupDocument.Entry(
@@ -627,6 +712,8 @@ final class ClipboardStore {
             total += entry.content.preview.utf8.count
                 + (entry.content.body?.utf8.count ?? 0)
                 + (entry.content.richData?.count ?? 0)
+                + (entry.content.displayName?.utf8.count ?? 0)
+                + (entry.content.recognizedText?.utf8.count ?? 0)
                 + (entry.imageData?.count ?? 0)
             guard total <= 75 * 1024 * 1024,
                   entry.content.preview.utf8.count <= 2 * 1024 * 1024,
@@ -634,6 +721,8 @@ final class ClipboardStore {
                   (entry.content.richData?.count ?? 0) <= 2 * 1024 * 1024,
                   (entry.imageData?.count ?? 0) <= 12 * 1024 * 1024,
                   (entry.content.filePath?.utf8.count ?? 0) <= 100_000,
+                  (entry.content.displayName?.count ?? 0) <= 120,
+                  (entry.content.recognizedText?.utf8.count ?? 0) <= 100_000,
                   (entry.content.collection?.count ?? 0) <= 60,
                   ClipKind(rawValue: entry.content.kind) != nil,
                   (entry.content.kind != ClipKind.image.rawValue || entry.imageData != nil),
@@ -654,7 +743,8 @@ final class ClipboardStore {
                     kind: kind, preview: entry.content.preview,
                     body: entry.content.body, imagePNG: entry.imageData,
                     filePath: entry.content.filePath,
-                    richData: entry.content.richData, richType: entry.content.richType
+                    richData: entry.content.richData, richType: entry.content.richType,
+                    recognizedText: entry.content.recognizedText
                 )
                 try saveInternal(
                     payload,
@@ -663,6 +753,13 @@ final class ClipboardStore {
                     importedPin: entry.pinned,
                     importedCollection: entry.content.collection
                 )
+                // Preserve human-readable titles as encrypted metadata on restore.
+                if let title = entry.content.displayName {
+                    let fingerprint = vault.fingerprint(for: payload.fingerprint)
+                    if let saved = try rowForFingerprint(fingerprint) {
+                        try rename(id: saved.item.id, to: title)
+                    }
+                }
             }
             try execute("COMMIT;")
         } catch {

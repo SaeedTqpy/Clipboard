@@ -37,6 +37,7 @@ enum ClipboardPreferences {
     static let excludedAppsKey = "clipboard.privacy.excludedApps"
     static let retentionDaysKey = "clipboard.retention.days"
     static let retentionCountKey = "clipboard.retention.count"
+    static let ocrKey = "clipboard.capture.ocr"
 
     static func enabled(_ key: String, fallback: Bool = true) -> Bool {
         guard UserDefaults.standard.object(forKey: key) != nil else { return fallback }
@@ -45,6 +46,8 @@ enum ClipboardPreferences {
 
     static var captureImages: Bool { enabled(imagesKey) }
     static var captureFiles: Bool { enabled(filesKey) }
+    /// CPU-intensive, opt-in on-device text recognition for copied images.
+    static var recognizeImages: Bool { enabled(ocrKey, fallback: false) }
     static var excludedBundleIDs: [String] {
         ClipboardPrivacy.normalizedBundleIDs(
             from: UserDefaults.standard.string(forKey: excludedAppsKey) ?? ""
