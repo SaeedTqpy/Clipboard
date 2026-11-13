@@ -1,1 +1,0 @@
-Second batch: assert generated Info.plist icon key, bundled .icns and Finder-ready universal macOS app.

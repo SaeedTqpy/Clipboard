@@ -69,7 +69,7 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 - [x] Restored macOS CI to manual-only after batched validation.
 - [ ] Real-device visual acceptance, Dock/Space transitions, Accessibility and Paste focus checks still required.
 
-Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936).
+Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866).
 
 ## Separate Quick Shelf and Clipboard Manager (new milestone)
 
@@ -120,6 +120,14 @@ A successful compilation is **not** a production-release approval. Complete encr
 ## Win-key shortcut and one-click paste — verified CI, 2026-11-13
 
 - [x] Mac CI: **51/51 XCTest cases successful** (includes shortcut migration and shelf-versus-manager card tap routing).
-- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936).
+- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866).
 - [x] Inner app ZIP SHA-256 matches the bundled checksum.
 - [ ] Physical Windows-logo modifier keyboard mapping and focus-safe insertion into Notes/VS Code/Safari still require manual on-device QA.
+
+## Custom app icon — validated 2026-11-13
+
+- [x] Script draws ten PNG variants and macOS `iconutil` generates ICNS in XcodeGen pre-build phase.
+- [x] App Info.plist includes `CFBundleIconFile=Clipboard.icns` (explicit plist generation).
+- [x] CI extracts the bundled ICNS as an iconset; 1024px entry is present.
+- [x] 51/51 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866).
+- [ ] Confirm actual Finder and Dock display and icon caching on a user's Mac.

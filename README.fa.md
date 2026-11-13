@@ -44,7 +44,7 @@ Clipboard یک برنامهٔ Menu Bar است که دو رابط مستقل دا
 
 ## دانلود و نصب
 
-نسخهٔ تأییدشده در [GitHub Actions Run #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936) قرار دارد.
+نسخهٔ تأییدشده در [GitHub Actions Run #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866) قرار دارد.
 
 ۱. در قسمت **Artifacts** فایل **Clipboard-macOS-unsigned** را دانلود کنید. برای دسترسی ممکن است ورود به GitHub لازم باشد. فایل‌ها فعلاً بعد از **۱۴ روز** منقضی می‌شوند.
 

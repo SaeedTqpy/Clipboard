@@ -45,7 +45,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 ## Download & install
 
-The latest verified CI build is [Clipboard macOS Actions run #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936) (November 13, 2026).
+The latest verified CI build is [Clipboard macOS Actions run #43428606866](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866) (November 13, 2026).
 
 1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
 2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
@@ -126,7 +126,7 @@ Clipboard/
 └── .github/workflows/  Manual macOS build and tests
 ```
 
-**Build evidence:** [51/51 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
+**Build evidence:** [51/51 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
 
 ## Contributing and support
 

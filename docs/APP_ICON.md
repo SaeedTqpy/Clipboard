@@ -29,3 +29,7 @@ The menu bar button remains monochrome by design, following macOS menu bar conve
 ## Bundle metadata
 
 XcodeGen writes `.generated/Clipboard-Info.plist` with a real `CFBundleIconFile` key and sets `GENERATE_INFOPLIST_FILE=NO` for the application target. The earlier `INFOPLIST_KEY_CFBundleIconFile` build setting was insufficient with the generated plist in the macOS runner; this explicit metadata prevents silently shipping a generic app icon.
+
+## Validated bundle
+
+**2026-11-13:** [GitHub Actions #43428606866](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866) passed **51/51 tests** and built an unsigned universal app for `arm64` and `x86_64`. CI also confirmed that `Contents/Resources/Clipboard.icns` exists, the bundled `CFBundleIconFile` points to it and the container can be expanded back into a 1024px iconset. The ZIP SHA-256 matches the bundled checksum. The artist's high-detail concept is available in the conversation; the production graphic is a native redrawn version.
