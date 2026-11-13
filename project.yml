@@ -39,9 +39,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.clipboard.app
-         MARKETING_VERSION: "0.2.0"
+        MARKETING_VERSION: "0.2.0"
         CURRENT_PROJECT_VERSION: "2"
-          GENERATE_INFOPLIST_FILE: NO
+        GENERATE_INFOPLIST_FILE: NO
         ENABLE_APP_SANDBOX: NO
   ClipboardTests:
     type: bundle.unit-test
