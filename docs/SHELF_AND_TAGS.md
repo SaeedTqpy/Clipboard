@@ -39,4 +39,8 @@ There is no network interaction, telemetry or third-party service for the tag sy
 
 ## CI build evidence
 
-The 2026-11-13 milestone passed **44/44 automated XCTest cases** and produced an unsigned Universal Release: [GitHub Actions run 43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43417580697). This does not replace real-device animation/focus/UX QA.
+The 2026-11-13 milestone passed **47/47 automated XCTest cases** and produced an unsigned Universal Release: [GitHub Actions run 43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43421944841). This does not replace real-device animation/focus/UX QA.
+
+## Separate surfaces — verified 2026-11-13
+
+The manager and quick-shelf routing changes passed **47/47 automated XCTest cases** and produced a universal Intel/Apple Silicon build in [CI run 43421944841](https://github.com/SaeedTqpy/Clipboard/actions/runs/43421944841). The ZIP was inspected and its nested app archive SHA-256 matches the published checksum. Actual animation/focus and cross-display behavior require a local macOS session, as described in the device QA checklist.

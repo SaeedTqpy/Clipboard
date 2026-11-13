@@ -1,1 +1,0 @@
-One consolidated QA run: physical screen-edge Shelf, menu-bar Manager exclusivity, duplicate-instance mitigation, Ctrl+Shift+V routing and regression tests.
