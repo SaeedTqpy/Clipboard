@@ -5,7 +5,7 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 
 ## Setup (without local Xcode)
 
-1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) from the successful run (29/29 tests; 2026-11-13). Do not trigger another build for this version.
+1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188) from the successful run (37/37 tests; 2026-11-13). Do not trigger another build for this version.
 2. Unzip the outer artifact archive, then the nested Clipboard-macOS-unsigned.zip.
 3. Copy Clipboard.app to /Applications. For unsigned code, approve **your own trusted build** under System Settings → Privacy & Security if macOS blocks it.
 4. Use the package diagnostic shell script in the repo:
@@ -19,6 +19,10 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 - [ ] Test copying and pasting a synthetic text item with and without Accessibility authorization.
 - [ ] Paste into Notes, Finder, Safari, VS Code, and a Terminal. Verify correct target focus.
 - [ ] Test HTML and RTF formatted copy plus Paste as Plain Text.
+- [ ] Enable optional on-device OCR, copy a demo image, and search recognized text.
+- [ ] Create, rename, edit and restore Snippets through encrypted backup.
+- [ ] Verify keyboard navigation (↑↓, Return, ⌥Return, ⌘P) and shortcut preset changes.
+- [ ] Verify hex color swatches for #RGB, #RRGGBB, #RRGGBBAA.
 - [ ] Test images, multi-file selections and persistence after app relaunch.
 - [ ] Test wrong/changed backup password, then portable backup on another Mac.
 - [ ] Test app exclusions using a synthetic document and custom ignored bundle ID.

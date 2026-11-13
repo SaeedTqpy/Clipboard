@@ -49,7 +49,7 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 
 ## Competitive features QA
 
-- [ ] Run updated macOS CI on this batch and pass all new OCR/snippet/keyboard tests.
+- [x] Updated macOS CI on competitive-feature batch: 37/37 automated tests successful, universal Release built in [run 43398219188](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188).
 - [ ] Navigate shelf with ↑↓, paste with Return and Option+Return; verify typing in Search still works.
 - [ ] Test Cmd+P, Cmd+Delete confirmation and Cmd+1–9 with keyboard and multiple windows.
 - [ ] Change global shortcut preset; verify conflict rejection leaves prior shortcut functional.

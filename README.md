@@ -6,7 +6,7 @@ Clipboard lives in the menu bar and lets you find, organize, and reuse copied te
 
 **[Experience the interactive 3D website](https://saeedtqpy.github.io/Clipboard/)** · **[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
 
-> **Developer preview · v0.2.0.** The November 13, 2026 build passed **29/29 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
+> **Developer preview · v0.2.0.** The November 13, 2026 competitive-feature build passed **37/37 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 
 ## Screenshots
 
@@ -40,7 +40,7 @@ Clipboard lives in the menu bar and lets you find, organize, and reuse copied te
 
 ## Download & install
 
-The latest verified CI build is [Clipboard macOS Actions run #43389410106](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) (November 13, 2026).
+The latest verified CI build is [Clipboard macOS Actions run #43398219188](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188) (November 13, 2026).
 
 1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
 2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
@@ -86,7 +86,7 @@ Clipboard is **local-first**. The application has no cloud-sync service, telemet
 - **File references:** external file paths are recorded, **not the contents of those files**.
 - **Distribution:** this preview is unsigned and not sandboxed.
 
-**Avoid copying real passwords, private keys, recovery phrases and API secrets while monitoring is enabled.** See [SECURITY.md](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
+**Avoid copying real passwords, private keys, recovery phrases and API secrets while monitoring is enabled.** OCR is opt-in and performed locally using Apple's Vision framework; its recognized text is encrypted in history. See [SECURITY.md](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
 
 ### Storage location
 
@@ -121,7 +121,7 @@ Clipboard/
 └── .github/workflows/  Manual macOS build and tests
 ```
 
-**Build evidence:** [29/29 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
+**Build evidence:** [37/37 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
 
 ## Contributing and support
 

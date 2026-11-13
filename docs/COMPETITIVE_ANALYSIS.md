@@ -43,7 +43,7 @@
 6. **Source/date filters**, per-item image text extraction, and selective recent-history deletion with confirmation.
 7. **Isolated tests** for editing, fingerprint deduplication, image OCR indexing, encrypted backup, safe recent-history deletion, time filters and hotkey preset data.
 
-These items describe **source code, not production validation**. The complete new code must pass macOS Actions and hands-on usability/privacy acceptance checks before release.
+**CI status:** the competitive-feature batch compiled and passed **37/37 tests** in [macOS Actions run 43398219188](https://github.com/SaeedTqpy/Clipboard/actions/runs/43398219188), with an unsigned universal Release artifact. Hands-on usability/privacy acceptance is still required.
 
 ## Positioning: deliberate trade-offs
 
