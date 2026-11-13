@@ -4,11 +4,6 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  # One-time scoped approval to validate the TCC code-signing correction.
-  push:
-    branches: [main]
-    paths:
-      - ".ci/tcc-identity-validation.txt"
 
 concurrency:
   group: clipboard-manual-build
