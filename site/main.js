@@ -74,7 +74,7 @@ if (window.matchMedia("(pointer:fine)").matches && !prefersQuiet()) {
 // users keep normal browser scrolling, visible type, and the CSS 3D sculpture.
 function setupMotion() {
   if (prefersQuiet()) return;
-  if (typeof window.Lenis === "function") {
+  if (typeof window.Lenis === "function" && !compactViewport.matches && !slowConnection) {
     const lenis = new window.Lenis({
       autoRaf: true,
       duration: 1.12,

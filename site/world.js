@@ -328,6 +328,13 @@ export function createWorld(container) {
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.setAttribute("aria-hidden", "true");
   renderer.domElement.className = "cinema__webgl";
+  renderer.domElement.addEventListener("webglcontextlost", (event) => {
+    event.preventDefault();
+    document.documentElement.classList.remove("webgl-ready");
+  });
+  renderer.domElement.addEventListener("webglcontextrestored", () => {
+    document.documentElement.classList.add("webgl-ready");
+  });
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
