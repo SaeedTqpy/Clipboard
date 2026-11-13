@@ -20,7 +20,7 @@ struct ClipboardPanelView: View {
     @State private var tagSheet: ClipboardTagSheet?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Image(systemName: "square.on.square")
                     .font(.system(size: 19, weight: .bold))
@@ -178,14 +178,17 @@ struct ClipboardPanelView: View {
                         .buttonStyle(.plain)
 
                         ForEach(model.tags) { tag in
-                            Menu {
-                                Button("Filter by \(tag.name)") { model.selectedTagID = tag.id }
-                                Button("Edit Tag…") { tagSheet = .edit(tag) }
+                            Button {
+                                model.selectedTagID =
+                                    model.selectedTagID == tag.id ? nil : tag.id
                             } label: {
                                 ClipTagPill(tag: tag, selected: model.selectedTagID == tag.id)
                             }
-                            .menuStyle(.borderlessButton)
+                            .buttonStyle(.plain)
                             .fixedSize()
+                            .contextMenu {
+                                Button("Edit \(tag.name)…") { tagSheet = .edit(tag) }
+                            }
                         }
 
                         if model.tags.isEmpty {
@@ -462,7 +465,7 @@ private struct ClipCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: item.displayName == nil ? 101 : 82)
+                .frame(height: item.displayName == nil ? 78 : 61)
 
                 if !item.tags.isEmpty {
                     HStack(spacing: 4) {
@@ -560,7 +563,7 @@ private struct ClipCard: View {
             }
             .padding(11)
         }
-        .frame(width: 230, height: 245)
+        .frame(width: 230, height: 224)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.93),
                     in: RoundedRectangle(cornerRadius: 15))
         .clipShape(RoundedRectangle(cornerRadius: 15))
