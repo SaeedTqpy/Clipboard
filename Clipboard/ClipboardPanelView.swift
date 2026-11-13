@@ -36,291 +36,29 @@ struct ClipboardPanelView: View {
     @State private var editingClip: ClipItem?
     @State private var creatingSnippet = false
     @State private var tagSheet: ClipboardTagSheet?
+    @AppStorage("clipboard.shelfDensity") private var densityRaw = "comfortable"
+
+    private var effectiveDensity: ClipboardShelfDensity {
+        let preferred = ClipboardShelfDensity(rawValue: densityRaw) ?? .comfortable
+        return presentation == .shelf
+            ? ClipboardShelfDensity.effective(
+                preferred: preferred, screenHeight: model.shelfScreenHeight
+            )
+            : preferred
+    }
+
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(systemName: "square.on.square")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(.mint)
-                Text("Clipboard")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                Text("History")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                HStack(spacing: 7) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search your clipboard…", text: $model.searchText)
-                        .textFieldStyle(.plain)
-                        .focused($searchFocused)
-                        .font(.system(size: 13))
-                        .frame(minWidth: 110, maxWidth: 240)
-                }
-                .padding(.horizontal, 12)
-                .frame(height: 36)
-                .liquidToolbar()
-
-                Button {
-                    creatingSnippet = true
-                } label: {
-                    Image(systemName: "plus.square.on.square")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .liquidToolbar()
-                .help("Create a reusable snippet")
-
-                Button {
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .liquidToolbar()
-                .help("Privacy and history settings")
-
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .liquidToolbar()
-                .help("Close")
-            }
-
-            HStack(spacing: 10) {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 16) {
-                        Button {
-                            model.pinnedOnly = false
-                        } label: {
-                            Label("All Clips", systemImage: "square.stack.3d.up")
-                        }
-                        .foregroundStyle(model.pinnedOnly ? .secondary : .primary)
-
-                        Button {
-                            model.pinnedOnly = true
-                        } label: {
-                            Label("Pinned", systemImage: "pin.fill")
-                        }
-                        .foregroundStyle(model.pinnedOnly ? .secondary : .primary)
-
-                        Menu {
-                            Button("All Content Types") { model.selectedKind = nil }
-                            ForEach(ClipKind.allCases, id: \.self) { kind in
-                                Button(kind.title) { model.selectedKind = kind }
-                            }
-                            Divider()
-                            Menu("Source Application") {
-                                Button("All Applications") { model.selectedSourceApp = nil }
-                                ForEach(model.sourceApps, id: \.self) { app in
-                                    Button(app) { model.selectedSourceApp = app }
-                                }
-                            }
-                            Menu("Date") {
-                                ForEach(ClipboardHistoryPeriod.allCases) { period in
-                                    Button(period.rawValue) { model.historyPeriod = period }
-                                }
-                            }
-                            Button("Reset Filters") {
-                                model.selectedKind = nil
-                                model.selectedSourceApp = nil
-                                model.historyPeriod = .all
-                                model.selectedCollection = nil
-                                model.selectedTagID = nil
-                                model.pinnedOnly = false
-                            }
-                        } label: {
-                            Label(model.selectedKind?.title ?? "Filters",
-                                  systemImage: "line.3.horizontal.decrease")
-                        }
-                        .frame(maxWidth: 130)
-
-                        Menu {
-                            Button("All Collections") { model.selectedCollection = nil }
-                            if !model.collections.isEmpty {
-                                Divider()
-                                ForEach(model.collections, id: \.self) { name in
-                                    Button(name) { model.selectedCollection = name }
-                                }
-                            }
-                        } label: {
-                            Label(model.selectedCollection ?? "Collections", systemImage: "folder")
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: 190)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.vertical, 4)
-                }
-                .scrollIndicators(.hidden)
-                Button {
-                    model.togglePaused()
-                } label: {
-                    Label(model.isPaused ? "Paused · Enable" : "Monitoring On",
-                          systemImage: model.isPaused ? "pause.circle" : "checkmark.shield")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .fixedSize()
-                .help(model.isPaused ? "Start recording clipboard history" : "Pause clipboard recording")
-            }
-            .font(.system(size: 11, weight: .semibold))
-
-            HStack(spacing: 9) {
-                Text("TAGS")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                ScrollView(.horizontal) {
-                    HStack(spacing: 7) {
-                        Button {
-                            model.selectedTagID = nil
-                        } label: {
-                            Text("All")
-                                .font(.system(size: 10, weight: .semibold))
-                                .padding(.horizontal, 11)
-                                .padding(.vertical, 5)
-                                .background(
-                                    model.selectedTagID == nil
-                                        ? Color.accentColor.opacity(0.21)
-                                        : Color.primary.opacity(0.06),
-                                    in: Capsule()
-                                )
-                        }
-                        .buttonStyle(.plain)
-
-                        ForEach(model.tags) { tag in
-                            Button {
-                                model.selectedTagID =
-                                    model.selectedTagID == tag.id ? nil : tag.id
-                            } label: {
-                                ClipTagPill(tag: tag, selected: model.selectedTagID == tag.id)
-                            }
-                            .buttonStyle(.plain)
-                            .fixedSize()
-                            .contextMenu {
-                                Button("Edit \(tag.name)…") { tagSheet = .edit(tag) }
-                            }
-                        }
-
-                        if model.tags.isEmpty {
-                            Text("Add a colored tag from a card's menu")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .padding(.vertical, 3)
-                }
-                .scrollIndicators(.hidden)
-            }
-            .frame(height: 28)
-
-            if model.clips.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 33))
-                        .foregroundStyle(.secondary)
-                    Text(model.searchText.isEmpty ? "Your clipboard history will appear here" : "No matching clips")
-                        .font(.system(size: 14, weight: .medium))
-                    Text(model.isPaused
-                         ? "Monitoring is paused. Enable it above to begin."
-                         : "Copy text, links, images, or files in another app.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollViewReader { scrollProxy in
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 12) {
-                            ForEach(model.clips) { item in
-                                ClipCard(
-                                    item: item,
-                                    isSelected: item.id == model.selectedClipID,
-                                    thumbnailSource: model.thumbnailSource(for: item),
-                                    onCopy: { _ = model.copy(item) },
-                                    onPaste: { onPaste(item) },
-                                    onPastePlain: { onPastePlain(item) },
-                                    onPin: { model.togglePinned(item) },
-                                    onQueue: { model.addToPasteStack(item) },
-                                    onDelete: { model.delete(item) },
-                                    onEdit: { editingClip = item },
-                                    onSaveSnippet: {
-                                        model.saveAsSnippet(
-                                            item, title: item.displayName ?? item.preview
-                                        )
-                                    },
-                                    onCopyRecognizedText: {
-                                        model.copyRecognizedText(item)
-                                    },
-                                    onPrimaryClick: {
-                                        switch presentation.cardTapBehavior {
-                                        case .pasteToPreviousApp: onPaste(item)
-                                        case .selectForManagement:
-                                            model.selectedClipID = item.id
-                                        }
-                                    },
-                                    primaryClickPastes: presentation == .shelf,
-                                    tags: model.tags,
-                                    onApplyTag: { tag in model.attachTag(tag, to: item) },
-                                    onRemoveTag: { id in model.detachTag(id, from: item) },
-                                    onCreateTag: { tagSheet = .create(item) },
-                                    collections: model.collections,
-                                    onMove: { name in model.move(item, toCollection: name) },
-                                    onNewCollection: {
-                                        newCollectionItem = item
-                                        newCollectionName = ""
-                                        showingCollectionAlert = true
-                                    }
-                                )
-                                .id(item.id)
-                            }
-                        }
-                        .padding(.vertical, 5)
-                    }
-                    .scrollIndicators(.hidden)
-                    .onChange(of: model.selectedClipID) { _, id in
-                        if let id {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                scrollProxy.scrollTo(id, anchor: .center)
-                            }
-                        }
-                    }
-                }
-            }
-
-            HStack {
-                Label("↑↓ select · ↵ paste · ⌥↵ plain · ⌘1…9 quick",
-                      systemImage: "keyboard")
-                Spacer()
-                Text("\(model.clips.count) clips")
-                Spacer()
-                if !model.pasteStack.isEmpty {
-                    Button {
-                        onPasteNext()
-                    } label: {
-                        Label("Paste Next (\(model.pasteStack.count))", systemImage: "square.stack")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    Button("Clear Stack") { model.clearPasteStack() }
-                        .buttonStyle(.link)
-                } else {
-                    Text("Stored on this Mac")
-                }
-            }
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.tertiary)
-
+        VStack(alignment: .leading, spacing: 12) {
+            header
+            filterRail
+            tagRail
+            clipsCarousel
+            footer
             if model.pasteDiagnostic != "P0 · No paste attempted since launch." {
-                HStack(spacing: 7) {
+                HStack(spacing: 8) {
                     Image(systemName: "waveform.path.ecg")
+                        .foregroundStyle(.mint)
                     Text(model.pasteDiagnostic)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -329,20 +67,23 @@ struct ClipboardPanelView: View {
                 }
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .help("Last paste stage only; clipboard contents are not included")
+                .padding(.horizontal, 5)
             }
-
             if let message = model.message {
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle")
-                    Text(message).lineLimit(2)
+                HStack(spacing: 9) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.orange)
+                    Text(message)
+                        .lineLimit(2)
+                        .font(.system(size: 11))
                     Spacer(minLength: 0)
                     Button("Dismiss") { model.message = nil }
                         .buttonStyle(.link)
                 }
-                .font(.system(size: 11))
-                .padding(8)
-                .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+                .padding(.horizontal, 13)
+                .padding(.vertical, 10)
+                .background(.orange.opacity(0.10),
+                            in: RoundedRectangle(cornerRadius: 13))
             }
         }
         .modifier(ClipboardPanelChrome(
@@ -408,6 +149,365 @@ struct ClipboardPanelView: View {
             Text("Give this collection a name, up to 60 characters.")
         }
     }
+
+    private var header: some View {
+        HStack(spacing: 13) {
+            Image(systemName: "square.on.square.fill")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 43, height: 43)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: [Color(red: 0.19, green: 0.85, blue: 0.82),
+                                     Color(red: 0.23, green: 0.42, blue: 0.93)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(.white.opacity(0.54), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Clipboard")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .tracking(-0.35)
+                Text(presentation == .shelf ? "QUICK PASTE" : "HISTORY MANAGER")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .tracking(1.3)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 16)
+            HStack(spacing: 9) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+                TextField("Search text, links, apps, tags…", text: $model.searchText)
+                    .textFieldStyle(.plain)
+                    .focused($searchFocused)
+                    .font(.system(size: 13))
+                    .frame(minWidth: 140)
+                if !model.searchText.isEmpty {
+                    Button {
+                        model.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clear search")
+                }
+            }
+            .padding(.horizontal, 14)
+            .frame(width: presentation == .shelf ? 320 : 265, height: 40)
+            .liquidToolbar()
+            headerActionButtons
+        }
+    }
+
+    @ViewBuilder
+    private var headerActionButtons: some View {
+        if #available(macOS 26, *) {
+            GlassEffectContainer(spacing: 7) {
+                headerActions
+            }
+        } else {
+            headerActions
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: 8) {
+            Button { creatingSnippet = true } label: {
+                Image(systemName: "plus.square.on.square")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 39, height: 39)
+            }
+            .buttonStyle(.plain)
+            .liquidToolbar()
+            .help("New reusable snippet")
+
+            Button { showingSettings = true } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 39, height: 39)
+            }
+            .buttonStyle(.plain)
+            .liquidToolbar()
+            .help("Clipboard settings")
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 39, height: 39)
+            }
+            .buttonStyle(.plain)
+            .liquidToolbar()
+            .help("Dismiss")
+        }
+    }
+
+    private var filterRail: some View {
+        HStack(spacing: 12) {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    Button {
+                        model.pinnedOnly = false
+                    } label: {
+                        Label("All Clips", systemImage: "square.stack.3d.up")
+                    }
+                    .modifier(ClipboardFilterChrome(selected: !model.pinnedOnly))
+
+                    Button {
+                        model.pinnedOnly = true
+                    } label: {
+                        Label("Pinned", systemImage: "pin.fill")
+                    }
+                    .modifier(ClipboardFilterChrome(selected: model.pinnedOnly))
+
+                    Menu {
+                        Button("All Content Types") { model.selectedKind = nil }
+                        ForEach(ClipKind.allCases, id: \.self) { kind in
+                            Button(kind.title) { model.selectedKind = kind }
+                        }
+                        Divider()
+                        Menu("Source Application") {
+                            Button("All Applications") {
+                                model.selectedSourceApp = nil
+                            }
+                            ForEach(model.sourceApps, id: \.self) { app in
+                                Button(app) { model.selectedSourceApp = app }
+                            }
+                        }
+                        Menu("Date") {
+                            ForEach(ClipboardHistoryPeriod.allCases) { period in
+                                Button(period.rawValue) { model.historyPeriod = period }
+                            }
+                        }
+                        Button("Reset Filters") {
+                            model.selectedKind = nil
+                            model.selectedSourceApp = nil
+                            model.historyPeriod = .all
+                            model.selectedCollection = nil
+                            model.selectedTagID = nil
+                            model.pinnedOnly = false
+                        }
+                    } label: {
+                        Label(model.selectedKind?.title ?? "Filters",
+                              systemImage: "line.3.horizontal.decrease")
+                    }
+                    .modifier(ClipboardFilterChrome(
+                        selected: model.selectedKind != nil ||
+                            model.selectedSourceApp != nil ||
+                            model.historyPeriod != .all
+                    ))
+
+                    Menu {
+                        Button("All Collections") {
+                            model.selectedCollection = nil
+                        }
+                        ForEach(model.collections, id: \.self) { name in
+                            Button(name) { model.selectedCollection = name }
+                        }
+                    } label: {
+                        Label(model.selectedCollection ?? "Collections",
+                              systemImage: "folder")
+                            .lineLimit(1)
+                    }
+                    .modifier(ClipboardFilterChrome(
+                        selected: model.selectedCollection != nil
+                    ))
+
+                    Menu {
+                        Button("Comfortable Cards") {
+                            densityRaw = ClipboardShelfDensity.comfortable.rawValue
+                        }
+                        Button("Compact Cards") {
+                            densityRaw = ClipboardShelfDensity.compact.rawValue
+                        }
+                    } label: {
+                        Label(effectiveDensity.title, systemImage: "rectangle.3.group")
+                    }
+                    .modifier(ClipboardFilterChrome(selected: false))
+                    .help("Card density")
+                }
+                .padding(.vertical, 3)
+            }
+            .scrollIndicators(.hidden)
+
+            Button { model.togglePaused() } label: {
+                Label(
+                    model.isPaused ? "Paused" : "Monitoring",
+                    systemImage: model.isPaused
+                        ? "pause.circle.fill" : "checkmark.shield.fill"
+                )
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(model.isPaused ? .orange : .mint)
+            .padding(.horizontal, 13)
+            .frame(height: 35)
+            .liquidToolbar()
+            .fixedSize()
+        }
+        .font(.system(size: 12, weight: .semibold))
+    }
+
+    private var tagRail: some View {
+        HStack(spacing: 11) {
+            Text("TAGS")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .tracking(1.2)
+                .foregroundStyle(.secondary)
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    Button {
+                        model.selectedTagID = nil
+                    } label: {
+                        Text("All Tags")
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 14)
+                            .frame(height: 27)
+                    }
+                    .buttonStyle(.plain)
+                    .background(
+                        model.selectedTagID == nil
+                            ? Color.accentColor.opacity(0.18)
+                            : Color.primary.opacity(0.06),
+                        in: Capsule()
+                    )
+                    ForEach(model.tags) { tag in
+                        Button {
+                            model.selectedTagID =
+                                model.selectedTagID == tag.id ? nil : tag.id
+                        } label: {
+                            ClipTagPill(
+                                tag: tag,
+                                selected: model.selectedTagID == tag.id
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Edit \(tag.name)…") { tagSheet = .edit(tag) }
+                        }
+                    }
+                    if model.tags.isEmpty {
+                        Text("Organize snippets with colored tags")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .frame(height: 31)
+    }
+
+    @ViewBuilder
+    private var clipsCarousel: some View {
+        if model.clips.isEmpty {
+            VStack(spacing: 9) {
+                Image(systemName: "square.stack.3d.up.slash")
+                    .font(.system(size: 30))
+                    .foregroundStyle(.mint)
+                Text(model.searchText.isEmpty
+                     ? "Your clipboard, beautifully organized"
+                     : "No matching clips")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Copy text, files, links or images in another app.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    LazyHStack(alignment: .center, spacing: effectiveDensity.cardSpacing) {
+                        ForEach(model.clips) { item in
+                            ClipCard(
+                                item: item,
+                                density: effectiveDensity,
+                                isSelected: item.id == model.selectedClipID,
+                                thumbnailSource: model.thumbnailSource(for: item),
+                                onCopy: { _ = model.copy(item) },
+                                onPaste: { onPaste(item) },
+                                onPastePlain: { onPastePlain(item) },
+                                onPin: { model.togglePinned(item) },
+                                onQueue: { model.addToPasteStack(item) },
+                                onDelete: { model.delete(item) },
+                                onEdit: { editingClip = item },
+                                onSaveSnippet: {
+                                    model.saveAsSnippet(
+                                        item, title: item.displayName ?? item.preview
+                                    )
+                                },
+                                onCopyRecognizedText: {
+                                    model.copyRecognizedText(item)
+                                },
+                                onPrimaryClick: {
+                                    switch presentation.cardTapBehavior {
+                                    case .pasteToPreviousApp: onPaste(item)
+                                    case .selectForManagement:
+                                        model.selectedClipID = item.id
+                                    }
+                                },
+                                primaryClickPastes: presentation == .shelf,
+                                tags: model.tags,
+                                onApplyTag: { tag in model.attachTag(tag, to: item) },
+                                onRemoveTag: { id in model.detachTag(id, from: item) },
+                                onCreateTag: { tagSheet = .create(item) },
+                                collections: model.collections,
+                                onMove: { name in model.move(item, toCollection: name) },
+                                onNewCollection: {
+                                    newCollectionItem = item
+                                    newCollectionName = ""
+                                    showingCollectionAlert = true
+                                }
+                            )
+                            .id(item.id)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 11)
+                }
+                .scrollIndicators(.hidden)
+                .onChange(of: model.selectedClipID) { _, id in
+                    if let id {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            proxy.scrollTo(id, anchor: .center)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 10) {
+            Label("↑↓ Navigate · ↵ Paste · ⌘1–9 Quick", systemImage: "keyboard")
+            Spacer(minLength: 8)
+            Label("\(model.clips.count) clips", systemImage: "square.stack")
+            Spacer(minLength: 8)
+            if !model.pasteStack.isEmpty {
+                Button {
+                    onPasteNext()
+                } label: {
+                    Label("Paste Next (\(model.pasteStack.count))", systemImage: "square.stack")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                Button("Clear Stack") { model.clearPasteStack() }
+                    .buttonStyle(.link)
+            } else {
+                Label("On-device · Private", systemImage: "lock.shield")
+            }
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 5)
+    }
+
 }
 
 /// Unlike a floating window, the quick shelf has two square bottom corners,
