@@ -26,6 +26,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private var panel: NSPanel?
     private var monitor: ClipboardMonitor?
     private var hotkey: ClipboardGlobalHotkey?
+    private var outsideClickMonitor: Any?
     private var previousApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -130,7 +131,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         if let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
             ?? NSScreen.main ?? NSScreen.screens.first {
             let available = screen.visibleFrame
-            let width = min(1050, max(680, available.width - 24))
+            let width = min(1050, max(520, available.width - 24))
             let x = available.midX - width / 2
             panel.setFrame(NSRect(
                 x: x, y: available.minY + 24,
@@ -139,10 +140,21 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         }
         panel.orderFrontRegardless()
         panel.makeKey()
+        if outsideClickMonitor == nil {
+            outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown]
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.hidePanel() }
+            }
+        }
     }
 
     private func hidePanel() {
         panel?.orderOut(nil)
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
     }
 
     private func pasteStackNext() {

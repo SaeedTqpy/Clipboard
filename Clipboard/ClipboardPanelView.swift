@@ -428,6 +428,15 @@ struct ClipboardSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("System Integration") {
+                Toggle("Launch Clipboard at login", isOn: Binding(
+                    get: { model.launchAtLoginEnabled },
+                    set: { model.setLaunchAtLogin($0) }
+                ))
+                Text("macOS may ask for approval under System Settings → General → Login Items. Unsigned development builds may not register successfully.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Shortcuts") {
                 Text("⌘⇧V opens the shelf. ⌘1 through ⌘9 paste a visible clip.")
                 Text("Automatic paste requires macOS Accessibility permission; copying does not.")

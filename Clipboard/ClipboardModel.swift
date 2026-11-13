@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import ServiceManagement
 
 @MainActor
 final class ClipboardModel: ObservableObject {
@@ -16,6 +17,7 @@ final class ClipboardModel: ObservableObject {
     @Published private(set) var pasteStack: [ClipItem] = []
     @Published private(set) var isPaused: Bool
     @Published var message: String?
+    @Published private(set) var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     @Published var captureImages: Bool {
         didSet { UserDefaults.standard.set(captureImages, forKey: ClipboardPreferences.imagesKey) }
     }
@@ -204,6 +206,23 @@ final class ClipboardModel: ObservableObject {
 
     func thumbnailSource(for item: ClipItem) -> ClipboardThumbnailSource? {
         store?.thumbnailSource(for: item)
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
+            if enabled && !launchAtLoginEnabled {
+                message = "Launch at login requires approval in System Settings → General → Login Items."
+            }
+        } catch {
+            launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
+            message = "Launch at login could not be changed: \(error.localizedDescription)"
+        }
     }
 
     func quarantineAndResetStorage() {
