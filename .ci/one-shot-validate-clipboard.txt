@@ -1,0 +1,2 @@
+2026-11-13 milestone validation
+This marker is the only push event allowed to start a GitHub Actions run.
