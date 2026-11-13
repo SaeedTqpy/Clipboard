@@ -4,6 +4,11 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
+  # One-shot CI validation for Apple-documented PostEvent permission fix.
+  push:
+    branches: [main]
+    paths:
+      - ".ci/postevent-tcc-validation.txt"
 
 concurrency:
   group: clipboard-manual-build
