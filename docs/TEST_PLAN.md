@@ -77,7 +77,7 @@ Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/ac
 - [ ] The lower shelf corners are square and no drop shadow makes it appear detached.
 - [ ] **Win+Shift+V** (default Command+Shift+V on a Mac) opens only Quick Shelf. Verify migration of the old Control+Shift+V default and preservation of other customized shortcuts.
 - [ ] Quick Shelf preview click copies, closes immediately, restores previous application focus, and pastes once. The Copy and menu buttons do not trigger the preview action.
-- [ ] Manager preview click selects only. Without Accessibility permission, Shelf click copies and closes without injecting Cmd+V.
+- [ ] Manager preview click selects only. Without Accessibility or Event Posting permission, Shelf click copies, stays visible with an actionable error, and never injects Cmd+V.
 - [ ] Left-click the menu bar icon: a normal, movable, resizable Clipboard Manager opens; Quick Shelf is hidden.
 - [ ] Right-click the menu bar icon: context menu with Pause/Settings/Quit is displayed.
 - [ ] Open the manager first then press the hotkey: only Quick Shelf remains. Open the shelf first then click the menu bar icon: only Manager remains.
@@ -131,3 +131,15 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [x] CI extracts the bundled ICNS as an iconset; 1024px entry is present.
 - [x] 51/51 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43428606866).
 - [ ] Confirm actual Finder and Dock display and icon caching on a user's Mac.
+
+## Click-to-Paste reliability — regression after user report
+
+- [x] Decorative ClipCard border no longer participates in hit-testing.
+- [x] Remember last active **regular** external app independently of a nonactivating key panel.
+- [x] Run unit tests for foreground PID resolution, stale fallback, no-self-target, and no posting into unrelated processes.
+- [x] Use PID-directed keyboard events instead of a global HID event stream; cancel pending paste if a new shelf session starts.
+- [x] Gate Paste on both Accessibility and Quartz Event Posting access; show an actionable permission warning instead of closing silently.
+- [ ] Observe the real macOS control path: focus text field in Notes → Cmd+Shift+V → click card preview → Shelf closes and text is inserted exactly once.
+- [ ] Repeat after making Clipboard the foreground app, switching Spaces, and using a second display.
+- [ ] With permission denied, ensure the Shelf remains visible, text is copied, and macOS requests access.
+- [ ] Verify clipboard data remains intact when a destination rejects focus activation; user can paste manually.

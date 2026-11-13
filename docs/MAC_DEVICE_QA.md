@@ -24,7 +24,7 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 - [ ] Click the **card preview** in Quick Shelf: copy, immediately close, restore Notes/Safari/VS Code focus, and insert the copied content once.
 - [ ] Click **Copy** and the **••• menu** independently: they must not trigger automatic paste.
 - [ ] Click a card in Manager: only select the clip, never auto-paste.
-- [ ] Revoke Accessibility: preview click copies and closes, but does not send keyboard events.
+- [ ] Revoke Accessibility: preview click copies the clip, keeps the Shelf visible with an actionable permission warning, and triggers the macOS Accessibility/event-posting permission request. It must not send keyboard events.
 - [ ] Paste into Notes, Finder, Safari, VS Code, and a Terminal. Verify correct target focus.
 - [ ] Test HTML and RTF formatted copy plus Paste as Plain Text.
 - [ ] Enable optional on-device OCR, copy a demo image, and search recognized text.
