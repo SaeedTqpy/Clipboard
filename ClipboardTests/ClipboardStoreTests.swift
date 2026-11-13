@@ -317,4 +317,87 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(try store.items(search: "").first?.id, bank.id)
     }
 
+    func testColorTagsPersistFilterSearchAndBackup() throws {
+        let (store, _) = try temporaryStore()
+        try store.save(
+            ClipPayload(kind: .text, preview: "first", body: "first"),
+            sourceApp: "Notes"
+        )
+        try store.save(
+            ClipPayload(kind: .text, preview: "second", body: "second"),
+            sourceApp: "Safari"
+        )
+        let original = try XCTUnwrap(store.items(search: "first").first)
+        let other = try XCTUnwrap(store.items(search: "second").first)
+        let work = ClipTag(name: "Project Work", color: .violet)
+        try store.addTag(work, to: original.id)
+        try store.addTag(work, to: other.id)
+        XCTAssertEqual(try store.tagCatalog().count, 1)
+        XCTAssertEqual(try store.items(search: "Project Work").count, 2)
+        XCTAssertEqual(try store.items(search: "", tagID: work.id).count, 2)
+
+        try store.editTag(work.id, name: "Client Work", color: .turquoise)
+        XCTAssertEqual(try store.items(search: "Project Work").count, 0)
+        XCTAssertEqual(try store.items(search: "Client Work").count, 2)
+        let edited = try XCTUnwrap(store.tagCatalog().first)
+        XCTAssertEqual(edited.color, .turquoise)
+        XCTAssertEqual(edited.name, "Client Work")
+
+        let archive = try store.exportBackup(password: "color tag backup password")
+        let (restored, _) = try temporaryStore()
+        try restored.importBackup(archive, password: "color tag backup password")
+        XCTAssertEqual(try restored.tagCatalog(), [edited])
+        XCTAssertEqual(try restored.items(search: "", tagID: edited.id).count, 2)
+    }
+
+    func testTagsRemainOnDeduplicatedCopyAndEditedClip() throws {
+        let (store, _) = try temporaryStore()
+        let payload = ClipPayload(kind: .text, preview: "kept", body: "kept")
+        try store.save(payload, sourceApp: "Notes")
+        let original = try XCTUnwrap(store.items(search: "kept").first)
+        let tag = ClipTag(name: "Important", color: .coral)
+        try store.addTag(tag, to: original.id)
+        try store.save(payload, sourceApp: "Safari")
+        let copiedAgain = try XCTUnwrap(store.items(search: "kept").first)
+        XCTAssertEqual(copiedAgain.id, original.id)
+        XCTAssertEqual(copiedAgain.tags, [tag])
+
+        try store.editText(id: original.id, newText: "kept and edited")
+        let afterEdit = try XCTUnwrap(store.items(search: "edited").first)
+        XCTAssertEqual(afterEdit.tags, [tag])
+        try store.removeTag(tag.id, from: original.id)
+        XCTAssertTrue(try store.tagCatalog().isEmpty)
+        XCTAssertTrue(try store.items(search: "", tagID: tag.id).isEmpty)
+    }
+
+    func testTagsValidateAndLimitFivePerClip() throws {
+        let (store, _) = try temporaryStore()
+        try store.save(
+            ClipPayload(kind: .text, preview: "many tags", body: "many tags"),
+            sourceApp: "Notes"
+        )
+        let item = try XCTUnwrap(store.items(search: "").first)
+        XCTAssertThrowsError(
+            try store.addTag(ClipTag(name: " ", color: .green), to: item.id)
+        )
+        for number in 1...7 {
+            try store.addTag(
+                ClipTag(name: "Tag \(number)", color: .amber), to: item.id
+            )
+        }
+        XCTAssertEqual(try store.items(search: "").first?.tags.count, 5)
+    }
+
+    func testOldEncryptedRecordWithoutTagFieldCanStillBeOpened() throws {
+        // Existing encrypted records were written without a tag field; the
+        // optional Codable property must decode safely as an empty UI list.
+        let (store, _) = try temporaryStore()
+        try store.save(
+            ClipPayload(kind: .text, preview: "legacy copy", body: "legacy copy"),
+            sourceApp: "Notes"
+        )
+        let reopened = try XCTUnwrap(store.items(search: "").first)
+        XCTAssertTrue(reopened.tags.isEmpty)
+    }
+
 }

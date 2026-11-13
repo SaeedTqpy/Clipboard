@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import Carbon
 import ApplicationServices
+import QuartzCore
 
 @main
 struct ClipboardApp: App {
@@ -175,6 +176,10 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
     private func showPanel() {
         guard let panel else { return }
+        if panel.isVisible && !isClosingShelf {
+            model.panelPresentationID &+= 1
+            return
+        }
         let foreground = NSWorkspace.shared.frontmostApplication
         if foreground?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
             previousApp = foreground
@@ -256,6 +261,17 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         })
     }
 
+    private func hidePanelImmediately() {
+        panelTransitionID &+= 1
+        isClosingShelf = false
+        panel?.orderOut(nil)
+        panel?.alphaValue = 1
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
+    }
+
     private func registerHotkey(_ preset: ClipboardHotkeyPreset) -> Bool {
         // Register replacement before dropping the old shortcut; failure is reversible.
         let replacement = ClipboardGlobalHotkey(preset: preset) { [weak self] in
@@ -320,7 +336,9 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             hidePanel()
             return
         }
-        hidePanel()
+        // Paste must release the key panel immediately before restoring focus.
+        // Keyboard delivery takes priority over the decorative close animation.
+        hidePanelImmediately()
         guard target.activate(options: []) else {
             model.message = "Copied. Could not restore the destination application."
             return
