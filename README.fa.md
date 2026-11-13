@@ -10,7 +10,11 @@ Clipboard یک برنامهٔ Menu Bar است که تاریخچهٔ متن، ل�
 
 ## تصاویر محیط برنامه
 
+<!-- SCREENSHOTS:START -->
+
 هنوز اسکرین‌شات واقعیِ تأییدشده از برنامه داخل ریپو موجود نیست. برای جلوگیری از نمایش تصویر ساختگی به‌عنوان محیط واقعی نرم‌افزار، راهنمای ثبت و آپلود تصاویر در [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) و اسکریپت [capture-readme-screenshots.sh](scripts/capture-readme-screenshots.sh) آماده شده است. با آن می‌توان تصاویر واقعی پنل، جستجو و تنظیمات را از مک ثبت و در README قرار داد.
+
+<!-- SCREENSHOTS:END -->
 
 ## قابلیت‌ها
 
