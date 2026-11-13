@@ -4,7 +4,7 @@
 
 Clipboard lives in the menu bar and lets you find, organize, and reuse copied text, links, rich text, images, and files in a floating horizontal shelf. It is built with **SwiftUI + AppKit**, with Apple's **Liquid Glass on macOS 26+** and system materials on macOS 15–25.
 
-**[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
+**[Experience the interactive 3D website](https://saeedtqpy.github.io/Clipboard/)** · **[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
 
 > **Developer preview · v0.2.0.** The November 13, 2026 build passed **29/29 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 

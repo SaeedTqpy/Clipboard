@@ -2,7 +2,7 @@
 
 **Source:** `site/` on the main branch.  
 **Publication:** the root of the dedicated `gh-pages` branch.  
-**Expected URL after GitHub Pages is enabled:** https://saeedtqpy.github.io/Clipboard/
+**Live GitHub Pages URL:** https://saeedtqpy.github.io/Clipboard/ (Pages deployment verified 2026-11-13)
 
 ## Concept
 

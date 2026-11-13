@@ -4,7 +4,7 @@
 
 Clipboard یک برنامهٔ Menu Bar است که تاریخچهٔ متن، لینک، متن قالب‌بندی‌شده، تصاویر و فایل‌های کپی‌شده را در پنلی شناور و قابل جستجو نمایش می‌دهد. با **SwiftUI + AppKit** ساخته شده و از **Liquid Glass در macOS 26** و Material سیستم در macOS 15 تا 25 استفاده می‌کند.
 
-[English README](README.md) · [دانلود](#دانلود-و-نصب) · [تصاویر برنامه](docs/SCREENSHOTS.md) · [گزارش خطا](https://github.com/SaeedTqpy/Clipboard/issues)
+**[مشاهده سایت سه‌بعدی Clipboard](https://saeedtqpy.github.io/Clipboard/)** · [English README](README.md) · [دانلود](#دانلود-و-نصب) · [تصاویر برنامه](docs/SCREENSHOTS.md) · [گزارش خطا](https://github.com/SaeedTqpy/Clipboard/issues)
 
 > **نسخهٔ پیش‌نمایش توسعه‌دهندگان — v0.2.0.** در ۱۳ نوامبر ۲۰۲۶، همهٔ **۲۹ تست خودکار** موفق شدند و خروجی Universal برای Apple Silicon و Intel ساخته شد. تست مجوز Accessibility، Paste واقعی و چندمانیتوره روی مک کاربر همچنان باقی است. این نسخه هنوز تأییدیهٔ انتشار عمومی ندارد.
 
