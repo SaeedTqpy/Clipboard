@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import SQLite3
 @testable import Clipboard
 
 final class ClipboardStoreTests: XCTestCase {
@@ -121,5 +122,73 @@ final class ClipboardStoreTests: XCTestCase {
             try target.importBackup(archive, password: "incorrect password")
         )
         XCTAssertEqual(try target.items(search: "").count, 1)
+    }
+
+    func testLegacySQLiteAndPNGAreMigratedToEncryptedHistory() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClipboardLegacy-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let appFolder = root.appendingPathComponent("Clipboard")
+        let assetFolder = appFolder.appendingPathComponent("Assets")
+        try FileManager.default.createDirectory(
+            at: assetFolder, withIntermediateDirectories: true
+        )
+        let oldFingerprint = String(repeating: "a", count: 64)
+        let filename = oldFingerprint + ".png"
+        let originalImage = Data([0x89, 0x50, 0x4e, 0x47])
+        try originalImage.write(to: assetFolder.appendingPathComponent(filename))
+        let dbFile = appFolder.appendingPathComponent("history.sqlite3")
+        var handle: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbFile.path, &handle), SQLITE_OK)
+        defer { if let handle { sqlite3_close(handle) } }
+        let statements = """
+            CREATE TABLE clips (
+                id TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL,
+                preview TEXT NOT NULL, body TEXT, asset_filename TEXT,
+                file_path TEXT, source_app TEXT NOT NULL,
+                created_at REAL NOT NULL, pinned INTEGER NOT NULL DEFAULT 0,
+                fingerprint TEXT NOT NULL UNIQUE, collection TEXT
+            );
+            INSERT INTO clips VALUES (
+                'legacy-01', 'image', 'PRIVATE-LEGACY-IMAGE-2026', NULL,
+                '\(filename)', NULL, 'Preview', 1000000000.0, 1,
+                '\(oldFingerprint)', 'Archive'
+            );
+            PRAGMA user_version=2;
+            """
+        XCTAssertEqual(sqlite3_exec(handle, statements, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(handle)
+        handle = nil
+
+        let store = try ClipboardStore(
+            directoryOverride: root, testKey: Data(repeating: 0x42, count: 32)
+        )
+        let migrated = try XCTUnwrap(store.items(search: "LEGACY").first)
+        XCTAssertTrue(migrated.pinned)
+        XCTAssertEqual(migrated.collection, "Archive")
+        XCTAssertEqual(try store.imageData(for: migrated), originalImage)
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: assetFolder.appendingPathComponent(filename).path
+        ))
+        XCTAssertNil(try Data(contentsOf: dbFile).range(
+            of: Data("PRIVATE-LEGACY-IMAGE-2026".utf8)
+        ))
+    }
+
+    func testRecoveryQuarantinesFilesInsteadOfDeletingThem() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClipboardRecovery-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let key = Data(repeating: 0x42, count: 32)
+        do {
+            let store = try ClipboardStore(directoryOverride: root, testKey: key)
+            try store.save(ClipPayload(kind: .text, preview: "preserve", body: "preserve"), sourceApp: "Notes")
+        }
+        let quarantine = try ClipboardRecovery.quarantine(baseDirectory: root)
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: quarantine.appendingPathComponent("history.sqlite3").path
+        ))
+        let restarted = try ClipboardStore(directoryOverride: root, testKey: key)
+        XCTAssertTrue(try restarted.items(search: "").isEmpty)
     }
 }

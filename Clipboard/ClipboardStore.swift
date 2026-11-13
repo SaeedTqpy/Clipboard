@@ -102,6 +102,7 @@ final class ClipboardStore {
         try execute("PRAGMA journal_mode=WAL;")
         try execute("PRAGMA busy_timeout=5000;")
         try execute("PRAGMA secure_delete=ON;")
+        try verifyIntegrity()
         try execute("""
             CREATE TABLE IF NOT EXISTS secure_clips (
                 id TEXT PRIMARY KEY NOT NULL,
@@ -638,6 +639,15 @@ final class ClipboardStore {
             throw error
         }
         try prune()
+    }
+
+    private func verifyIntegrity() throws {
+        let stmt = try prepare("PRAGMA quick_check(1);")
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW,
+              text(stmt, 0) == "ok" else {
+            throw ClipboardStoreError.database("SQLite integrity check failed. Use Storage Recovery in settings.")
+        }
     }
 
     private func columnExists(_ name: String, in table: String) throws -> Bool {

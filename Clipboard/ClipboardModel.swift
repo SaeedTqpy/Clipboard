@@ -40,7 +40,8 @@ final class ClipboardModel: ObservableObject {
 
     var onClipboardWrite: (() -> Void)?
     var onMonitoringChange: ((Bool) -> Void)?
-    private let store: ClipboardStore?
+    private var store: ClipboardStore?
+    var databaseUnavailable: Bool { store == nil }
 
     private init() {
         captureImages = ClipboardPreferences.captureImages
@@ -203,6 +204,25 @@ final class ClipboardModel: ObservableObject {
 
     func thumbnailSource(for item: ClipItem) -> ClipboardThumbnailSource? {
         store?.thumbnailSource(for: item)
+    }
+
+    func quarantineAndResetStorage() {
+        guard store == nil else {
+            message = "Database recovery is available only when the current database could not be opened."
+            return
+        }
+        do {
+            let savedDirectory = try ClipboardRecovery.quarantine()
+            let cleanStore = try ClipboardStore()
+            store = cleanStore
+            isPaused = true
+            UserDefaults.standard.set(true, forKey: "clipboard.monitor.paused")
+            onMonitoringChange?(true)
+            reload()
+            message = "A fresh encrypted history was created. Your previous files are preserved in \(savedDirectory.path)."
+        } catch {
+            message = "Recovery could not complete: \(error.localizedDescription)"
+        }
     }
 
     func exportEncryptedBackup(password: String, to url: URL) {

@@ -356,6 +356,18 @@ struct ClipboardSettingsView: View {
 
     var body: some View {
         Form {
+            if model.databaseUnavailable {
+                Section("Storage Recovery") {
+                    Text("Clipboard could not open its encrypted history. Your existing files have not been deleted.")
+                        .foregroundStyle(.orange)
+                    Button("Preserve Old History and Create Fresh Storage…") {
+                        confirmDatabaseRecovery()
+                    }
+                    Text("The old database and image assets are moved to a recovery folder instead of being deleted. Recovery does not decrypt data if the Keychain key is lost.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Section("Monitoring and Privacy") {
                 Toggle("Pause clipboard monitoring", isOn: Binding(
                     get: { model.isPaused },
@@ -431,6 +443,17 @@ struct ClipboardSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 615, height: 600)
+    }
+
+    private func confirmDatabaseRecovery() {
+        let alert = NSAlert()
+        alert.messageText = "Move the existing history into recovery storage?"
+        alert.informativeText = "Clipboard will preserve the complete existing database and assets in a separate folder, then create a new empty encrypted history. This does NOT restore damaged entries."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Preserve and Reset")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        model.quarantineAndResetStorage()
     }
 
     private func exportBackup() {
