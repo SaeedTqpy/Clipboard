@@ -1,76 +1,129 @@
-# Clipboard — native macOS clipboard manager
+# Clipboard
 
-**SwiftUI + AppKit · Liquid Glass on macOS 26 · Keychain + AES-GCM encrypted history · Universal Mac**
+**A native, local-first clipboard history manager for macOS.**
 
-Clipboard is a local-first menu-bar application with a floating horizontal clipboard shelf. This repository is actively developed and **not yet approved for general production use**.
+Clipboard lives in the menu bar and lets you find, organize, and reuse copied text, links, rich text, images, and files in a floating horizontal shelf. It is built with **SwiftUI + AppKit**, with Apple's **Liquid Glass on macOS 26+** and system materials on macOS 15–25.
 
-## Implemented
+**[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
 
-- Global ⌘⇧V shortcut, bottom floating shelf, first-launch onboarding, dismiss-on-outside-click, and menu bar controls.
-- Capture of text, HTTP(S) links, HTML/RTF rich text, images, one or multiple file URLs, and deduplication. Rich-text items can be pasted with formatting or as plain text.
-- Collections, pins, search, kind filters, card actions and an in-memory sequential Paste Stack.
-- Keyboard quick actions ⌘1–9, Copy and Accessibility-gated Paste into the previously active application with focus validation.
-- Monitoring **paused by default**, privacy exclusion by app bundle ID, protected/transient pasteboard type filtering, image/file recording toggles.
-- Retention controls, 512 MiB combined budget for *unpinned* image assets, cleaning of unreferenced assets.
-- Local SQLite with **AES-256-GCM sealed clipboard records** (content + source application + collection + file paths) and encrypted PNG assets. The encryption key is stored in this Mac's Keychain and is restricted to this device.
-- HMAC-based content fingerprints; **no plaintext full-text SQLite index**. Search is performed over decrypted records in memory with a bounded cache.
-- Migrates legacy plaintext history and PNG assets; creates a new encrypted storage layout and attempts to remove legacy plaintext data.
-- Passphrase-encrypted portable backup export/import, using PBKDF2-HMAC-SHA256 (310,000 rounds) and AES-256-GCM. Archive payloads are limited to 100 MiB and currently processed in memory.
-- Explicit storage recovery: a failed database can be moved intact to a quarantine directory before creating an empty one. Never silently deletes unreadable history.
-- Optional Launch at Login via ServiceManagement; may require system approval and a properly signed app.
-- On-demand encrypted image decryption, off-main thumbnail generation with ImageIO dimension limits, limited in-memory thumbnail cache.
+> **Developer preview · v0.2.0.** The November 13, 2026 build passed **29/29 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 
-## Validated macOS build — 13 Nov 2026
+## Screenshots
 
-- [Successful macOS Actions run](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106)
-- **29/29 XCTests passed**, including encrypted storage, corruption handling, migration, privacy rules and a 500-entry search benchmark.
-- **Universal Release successfully built** for `arm64` and `x86_64`. The unsigned `Clipboard-macOS-unsigned` artifact is available on that run (14-day retention).
-- One test failure in the preceding batch exposed a stale decrypted-cache bug; it was fixed and the subsequent run passed.
-- CI is now **workflow_dispatch-only** again. No automatic builds on pushes.
+<!-- SCREENSHOTS:START -->
+**Actual macOS screenshots have not yet been captured.** We don't present mockups as product screenshots. See the [screenshot instructions](docs/SCREENSHOTS.md) to capture the real shelf, search and settings windows safely without Xcode.
+<!-- SCREENSHOTS:END -->
 
-The validated artifact still requires hands-on testing for Accessibility permissions, real paste destinations, multi-monitor UX and login-item behavior. Follow [Mac Device QA](docs/MAC_DEVICE_QA.md).
+## Features
 
-## Build with GitHub Actions
+| Area | Capabilities |
+| --- | --- |
+| Clipboard history | Text, HTTP(S) links, HTML/RTF, images and single/multiple file references |
+| Native shelf | Floating horizontal cards, search, quick copy and paste |
+| Organization | Pinning, deletion, collections, and content-type filtering |
+| Quick paste | **⌘⇧V** to open; **⌘1–9** for visible entries; Paste as Plain Text |
+| Paste Stack | Queue clips and paste them sequentially during the current session |
+| Privacy | Opt-in monitoring, application exclusions, image/file capture toggles |
+| Storage | AES-256-GCM encrypted clips and image assets, Keychain-held device key |
+| Backup & recovery | Password-encrypted portable backups and non-destructive database quarantine |
+| Housekeeping | Adjustable history retention and disk budget for unpinned images |
+| Integration | Menu bar, optional Launch at Login and native appearance |
 
-**The workflow is manual-only to save macOS runner minutes.** A push or PR does not start a build.
+## Requirements
 
-1. Open [Clipboard macOS workflow](https://github.com/SaeedTqpy/Clipboard/actions/workflows/macos.yml).
-2. Click **Run workflow** and choose the desired branch.
-3. GitHub compiles, runs unit tests, builds an unsigned universal arm64/x86_64 app and uploads an Artifact.
-4. Download the `Clipboard-macOS-unsigned` artifact and verify SHA-256.
+- **macOS 15+**; native Liquid Glass styling is used on **macOS 26+**.
+- **Apple Silicon (arm64)** or **Intel (x86_64)**.
+- **No paid Apple Developer account or local Xcode needed to install** a prebuilt development artifact.
+- **Accessibility permission is needed only for automatic paste**, not for viewing history or copying a clip.
 
-No paid Apple Developer Account and no local Xcode are required for these *development builds*. Because they are unsigned/not notarized, macOS Gatekeeper can block launch. For your own trusted build, System Settings → Privacy & Security → Open Anyway may be necessary.
+## Download & install
 
-Local Xcode build is optional:
+The latest verified CI build is [Clipboard macOS Actions run #43389410106](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) (November 13, 2026).
+
+1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
+2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
+3. Move `Clipboard.app` into **Applications** and launch it.
+4. This is an **unsigned, unnotarized development build**. If Gatekeeper blocks it, only if you trust the origin, review **System Settings → Privacy & Security → Open Anyway**.
+5. Use *synthetic, non-sensitive* sample content first. Monitoring is **paused by default** on first launch.
+
+There is no official signed installer, notarized DMG, App Store release or automatic updater yet.
+
+**Need a fresh build?** Open [Clipboard macOS workflow](https://github.com/SaeedTqpy/Clipboard/actions/workflows/macos.yml) and select **Run workflow**. CI is deliberately **manual-only**—commits and PRs do not automatically consume GitHub Actions minutes.
+
+## Getting started
+
+1. Start Clipboard and find its icon in the **menu bar**.
+2. Press **⌘⇧V** (or select **Open Clipboard** from the menu) to reveal the shelf.
+3. **Enable monitoring**. Copy a harmless phrase such as `Clipboard test 001` in Notes.
+4. Search the shelf; click **Copy** to put an item back on the macOS pasteboard.
+5. To **Paste** into the previously active app, grant Clipboard **Accessibility** permission in system settings. The app verifies the destination process before sending ⌘V, but compatibility depends on the destination app.
+6. Use the card menu to pin, move to a collection, add to Paste Stack, delete, or paste supported text as plain text.
+
+| Shortcut | Behavior |
+| --- | --- |
+| **⌘⇧V** | Show or hide the floating shelf |
+| **⌘1 … ⌘9** | Paste one of the first nine currently visible clips if the panel receives the shortcut |
+| **Esc** | Dismiss the shelf |
+
+The global hotkey is currently fixed and may conflict with shortcuts in other applications.
+
+## Privacy and data safety
+
+Clipboard is **local-first**. The application has no cloud-sync service, telemetry, or clipboard-content upload endpoint.
+
+- **Opt-in:** monitoring starts paused and does not import data copied while paused.
+- **Encrypted at rest:** clip content (including previews, paths and app names) and stored image assets are sealed with AES-GCM; the master key lives in macOS Keychain.
+- **Sensitive sources are best-effort exclusions:** password-manager identification, concealed/transient pasteboard annotations and user-selected app exclusions are **not a guarantee** against accidentally storing a secret.
+- **What encryption does not cover:** the system clipboard, active app memory, screenshots, previous backups, APFS snapshots, and SSD remnants.
+- **Backups:** `.clipbackup` files are independently encrypted with a user-supplied password. Forgetting that password makes the archive unrecoverable. Losing the device's Keychain key can make local history unreadable.
+- **File references:** external file paths are recorded, **not the contents of those files**.
+- **Distribution:** this preview is unsigned and not sandboxed.
+
+**Avoid copying real passwords, private keys, recovery phrases and API secrets while monitoring is enabled.** See [SECURITY.md](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
+
+### Storage location
+
+`~/Library/Application Support/Clipboard/`
+
+The directory contains the SQLite history and encrypted assets. A corrupt database is never silently discarded; recovery requires confirmation and preserves the previous folder separately.
+
+## Build from source
+
+Building locally requires a Mac with a suitable Xcode toolchain. The Xcode project is generated by [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 brew install xcodegen
 xcodegen generate --spec project.yml
-xcodebuild test -project Clipboard.xcodeproj -scheme Clipboard -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project Clipboard.xcodeproj -scheme Clipboard \
+  -configuration Debug -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -project Clipboard.xcodeproj -scheme Clipboard \
+  -configuration Release -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO
 ```
 
-## Privacy and limitations
+If Xcode is not installed locally, use the **manual GitHub Actions build** linked above.
 
-1. **Clipboard source filtering is best-effort.** Some applications do not mark credentials as private and frontmost-app observation is not an authenticated copy origin. The app can still accidentally capture secrets. Disable monitoring whenever working with sensitive material.
-2. AES-GCM protects Clipboard's stored content, **not** the system-wide macOS pasteboard, live process memory, macOS screenshots, backups taken before migration or historical SSD snapshots. Database migration and clearing cannot guarantee forensic erasure of old plaintext blocks.
-3. A lost Keychain key prevents the recovery of device-bound encrypted history. Use a **password-protected portable backup** before reinstalling, changing Macs or resetting your login keychain.
-4. The backup password is never saved; **forgetting it makes the backup unrecoverable**. Backup import merges records, and file URLs still refer to files on the source filesystem.
-5. Strong security depends on code signing, permission behavior, tamper/restore tests and hardware verification. The November 13 milestone code was compiled, tested and packaged successfully; the later documentation-only update does not alter the compiled application.
-6. Encrypted search decrypts metadata into app memory. Performance and memory use on very large histories still need measurement and refinement.
+### Project structure
 
-## Repository
+```text
+Clipboard/
+├── Clipboard/          SwiftUI UI, AppKit integration, capture and encryption
+├── ClipboardTests/     Automated unit, integration-seam and performance tests
+├── docs/               Architecture, roadmap, macOS QA and screenshots
+├── scripts/            Diagnostics and screenshot capture tools
+├── project.yml         XcodeGen configuration
+└── .github/workflows/  Manual macOS build and tests
+```
 
-- `Clipboard/ClipboardApp.swift`: native panel, menu bar, hotkeys, app-focus-safe pasting
-- `Clipboard/ClipboardModel.swift`: observable application state and commands
-- `Clipboard/ClipboardMonitor.swift`: opt-in NSPasteboard capture
-- `Clipboard/ClipboardStore.swift`: encrypted SQLite, schema migration, retention, encrypted archives
-- `Clipboard/ClipboardVault.swift`: Keychain-backed AES-GCM and keyed fingerprints
-- `Clipboard/ClipboardBackupCrypto.swift`: passphrase-derived portable backup encryption
-- `Clipboard/ClipboardThumbnailView.swift`: off-main ImageIO thumbnails
-- `Clipboard/ClipboardImageNormalizer.swift`: bounded image conversion
-- `Clipboard/ClipboardRecovery.swift`: non-destructive history quarantine
-- `Clipboard/ClipboardPanelView.swift`: native shelf, collection management, privacy, backup and login settings
-- `ClipboardTests/`: policy, storage, migration, backup and vault tests
-- `docs/TEST_PLAN.md`: physical Mac acceptance checklist
+**Build evidence:** [29/29 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
 
-**Compatibility:** macOS 15+, true Liquid Glass on macOS 26+, fallback system materials on macOS 15–25. Signing and notarization for broad public distribution will require Apple Developer membership.
+## Contributing and support
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [ROADMAP.md](docs/ROADMAP.md) and the [real-device acceptance checklist](docs/MAC_DEVICE_QA.md). Bug reports and focused contributions are welcome, but **never upload real clipboard contents, raw databases, secrets or unredacted logs to public issues**.
+
+### License
+
+**No software license has been chosen or published.** Public source visibility does not grant reuse, modification or redistribution rights. Licensing must be decided before describing Clipboard as open source.
+
+---
+
+Clipboard is an independent project and is not affiliated with Apple.
