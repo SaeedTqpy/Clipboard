@@ -4,13 +4,20 @@ import AppKit
 /// The visible screen rectangle protects controls from the Dock, but does not
 /// determine the shelf's bottom position.
 enum ClipboardShelfLayout {
-    static func frame(in screenFrame: CGRect, visibleFrame: CGRect) -> CGRect {
+    static func frame(
+        in screenFrame: CGRect, visibleFrame: CGRect,
+        density: ClipboardShelfDensity = .comfortable
+    ) -> CGRect {
         let safeBottom = bottomContentInset(
             screenFrame: screenFrame, visibleFrame: visibleFrame
         )
+        let effectiveDensity = ClipboardShelfDensity.effective(
+            preferred: density, screenHeight: screenFrame.height
+        )
         let height = max(
-            260,
-            min(screenFrame.height - 60, 375 + safeBottom)
+            280,
+            min(screenFrame.height - 44,
+                effectiveDensity.preferredShelfHeight + safeBottom)
         )
         return CGRect(
             x: screenFrame.minX,

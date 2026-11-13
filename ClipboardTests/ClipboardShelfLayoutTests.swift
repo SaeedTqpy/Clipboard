@@ -13,7 +13,7 @@ final class ClipboardShelfLayoutTests: XCTestCase {
         XCTAssertEqual(ClipboardShelfLayout.bottomContentInset(
             screenFrame: display, visibleFrame: safe
         ), 80)
-        XCTAssertGreaterThanOrEqual(frame.height, 375 + 80)
+        XCTAssertGreaterThanOrEqual(frame.height, 498 + 80)
         XCTAssertLessThanOrEqual(frame.maxY, display.maxY)
     }
 
@@ -43,6 +43,31 @@ final class ClipboardShelfLayoutTests: XCTestCase {
         XCTAssertEqual(ClipboardShelfLayout.bottomContentInset(
             screenFrame: screen, visibleFrame: safe
         ), 0)
+    }
+
+    func testComfortableShelfHasSpaceForLargerCards() {
+        let screen = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let safe = CGRect(x: 0, y: 72, width: 1920, height: 968)
+        let comfortable = ClipboardShelfLayout.frame(
+            in: screen, visibleFrame: safe, density: .comfortable
+        )
+        let compact = ClipboardShelfLayout.frame(
+            in: screen, visibleFrame: safe, density: .compact
+        )
+        XCTAssertGreaterThan(comfortable.height, compact.height)
+        XCTAssertEqual(comfortable.minY, screen.minY)
+        XCTAssertEqual(compact.minY, screen.minY)
+        XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardWidth, 300)
+        XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardHeight, 250)
+    }
+
+    func testCompactDisplayForcesCompactCards() {
+        XCTAssertEqual(ClipboardShelfDensity.effective(
+            preferred: .comfortable, screenHeight: 600
+        ), .compact)
+        XCTAssertEqual(ClipboardShelfDensity.effective(
+            preferred: .comfortable, screenHeight: 900
+        ), .comfortable)
     }
 
     func testCompactDisplayCannotExceedScreenBounds() {
