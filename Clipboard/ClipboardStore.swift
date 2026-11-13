@@ -463,12 +463,12 @@ final class ClipboardStore {
             if let sourceApp, item.sourceApp != sourceApp { continue }
             if let tagID, !item.tags.contains(where: { $0.id == tagID }) { continue }
             if let since, item.createdAt < since { continue }
-            if !terms.allSatisfy({
-                item.preview.localizedStandardContains($0)
-                || (item.displayName?.localizedStandardContains($0) ?? false)
-                || (item.recognizedText?.localizedStandardContains($0) ?? false)
-                || item.tags.contains(where: { $0.name.localizedStandardContains($0) })
-                || (item.body?.localizedStandardContains($0) ?? false)
+            if !terms.allSatisfy({ term in
+                item.preview.localizedStandardContains(term)
+                || (item.displayName?.localizedStandardContains(term) ?? false)
+                || (item.recognizedText?.localizedStandardContains(term) ?? false)
+                || item.tags.contains(where: { $0.name.localizedStandardContains(term) })
+                || (item.body?.localizedStandardContains(term) ?? false)
             }) { continue }
             result.append(item)
             if result.count >= 500 { break }
@@ -479,8 +479,8 @@ final class ClipboardStore {
     /// The tag catalog is derived from sealed records. No plaintext tag names.
     func tagCatalog() throws -> [ClipTag] {
         var catalog: [String: ClipTag] = [:]
-        for item in try allRows().map(.item) {
-            for tag in item.tags where catalog[tag.id] == nil {
+        for row in try allRows() {
+            for tag in row.item.tags where catalog[tag.id] == nil {
                 catalog[tag.id] = tag
             }
         }
@@ -883,6 +883,12 @@ final class ClipboardStore {
         }
         var total = 0
         for entry in doc.entries {
+            let backupTags = entry.content.tags ?? []
+            guard backupTags.count <= 5,
+                  backupTags.allSatisfy({ $0.isValid }),
+                  Set(backupTags.map { $0.id }).count == backupTags.count else {
+                throw ClipboardStoreError.invalidArchive
+            }
             total += entry.content.preview.utf8.count
                 + (entry.content.body?.utf8.count ?? 0)
                 + (entry.content.richData?.count ?? 0)
@@ -899,9 +905,6 @@ final class ClipboardStore {
                   (entry.content.displayName?.count ?? 0) <= 120,
                   (entry.content.recognizedText?.utf8.count ?? 0) <= 100_000,
                   (entry.content.collection?.count ?? 0) <= 60,
-                  (entry.content.tags ?? []).count <= 5,
-                  (entry.content.tags ?? []).allSatisfy(.isValid),
-                  Set((entry.content.tags ?? []).map(.id)).count == (entry.content.tags ?? []).count,
                   ClipKind(rawValue: entry.content.kind) != nil,
                   (entry.content.kind != ClipKind.image.rawValue || entry.imageData != nil),
                   (entry.content.kind != ClipKind.richText.rawValue ||
