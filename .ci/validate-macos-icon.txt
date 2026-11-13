@@ -1,0 +1,1 @@
+Single macOS validation: generate custom clipboard ICNS, verify Info.plist icon reference, run all unit tests and package Universal app.
