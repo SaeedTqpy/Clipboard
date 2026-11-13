@@ -27,6 +27,7 @@ struct ClipboardPanelView: View {
     let onPaste: (ClipItem) -> Void
     let onPastePlain: (ClipItem) -> Void
     let onPasteNext: () -> Void
+    let onDensityChange: (ClipboardShelfDensity) -> Void
 
     @FocusState private var searchFocused: Bool
     @State private var showingSettings = false
@@ -322,9 +323,11 @@ struct ClipboardPanelView: View {
                     Menu {
                         Button("Comfortable Cards") {
                             densityRaw = ClipboardShelfDensity.comfortable.rawValue
+                            onDensityChange(.comfortable)
                         }
                         Button("Compact Cards") {
                             densityRaw = ClipboardShelfDensity.compact.rawValue
+                            onDensityChange(.compact)
                         }
                     } label: {
                         Label(effectiveDensity.title, systemImage: "rectangle.3.group")

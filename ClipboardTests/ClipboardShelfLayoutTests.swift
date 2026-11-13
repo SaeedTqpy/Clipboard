@@ -58,7 +58,7 @@ final class ClipboardShelfLayoutTests: XCTestCase {
         XCTAssertEqual(comfortable.minY, screen.minY)
         XCTAssertEqual(compact.minY, screen.minY)
         XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardWidth, 300)
-        XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardHeight, 250)
+        XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardHeight, 275)
     }
 
     func testCompactDisplayForcesCompactCards() {

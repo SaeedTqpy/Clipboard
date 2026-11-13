@@ -213,7 +213,10 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             onDismiss: { [weak self] in self?.hidePanel() },
             onPaste: { [weak self] item in self?.paste(item) },
             onPastePlain: { [weak self] item in self?.paste(item, asPlainText: true) },
-            onPasteNext: { [weak self] in self?.pasteStackNext() }
+            onPasteNext: { [weak self] in self?.pasteStackNext() },
+            onDensityChange: { [weak self] density in
+                self?.resizeVisibleShelf(to: density)
+            }
         ))
         self.panel = panel
     }
@@ -235,7 +238,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             onDismiss: { [weak window] in window?.orderOut(nil) },
             onPaste: { [weak self] item in self?.paste(item) },
             onPastePlain: { [weak self] item in self?.paste(item, asPlainText: true) },
-            onPasteNext: { [weak self] in self?.pasteStackNext() }
+            onPasteNext: { [weak self] in self?.pasteStackNext() },
+            onDensityChange: { _ in }
         ))
         managementWindow = window
     }
@@ -344,9 +348,16 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
         // Physically flush with the display, not with NSScreen.visibleFrame.
         // The latter excludes the Dock and caused the visible lower gap.
+        let savedDensity = ClipboardShelfDensity(
+            rawValue: UserDefaults.standard.string(
+                forKey: "clipboard.shelfDensity"
+            ) ?? ClipboardShelfDensity.comfortable.rawValue
+        ) ?? .comfortable
         let target = ClipboardShelfLayout.frame(
-            in: screen.frame, visibleFrame: screen.visibleFrame
+            in: screen.frame, visibleFrame: screen.visibleFrame,
+            density: savedDensity
         )
+        model.shelfScreenHeight = screen.frame.height
         model.shelfBottomInset = ClipboardShelfLayout.bottomContentInset(
             screenFrame: screen.frame, visibleFrame: screen.visibleFrame
         )
@@ -384,6 +395,25 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
                 matching: [.leftMouseDown, .rightMouseDown]
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in self?.hidePanel() }
+            }
+        }
+    }
+
+    private func resizeVisibleShelf(to density: ClipboardShelfDensity) {
+        guard let panel, panel.isVisible,
+              let screen = panel.screen ?? NSScreen.main else { return }
+        let frame = ClipboardShelfLayout.frame(
+            in: screen.frame, visibleFrame: screen.visibleFrame,
+            density: density
+        )
+        model.shelfScreenHeight = screen.frame.height
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            panel.setFrame(frame, display: true)
+        } else {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().setFrame(frame, display: true)
             }
         }
     }

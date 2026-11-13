@@ -8,11 +8,11 @@ enum ClipboardShelfDensity: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
-    var cardWidth: CGFloat { self == .comfortable ? 316 : 268 }
-    var cardHeight: CGFloat { self == .comfortable ? 266 : 232 }
-    var previewHeight: CGFloat { self == .comfortable ? 119 : 87 }
+    var cardWidth: CGFloat { self == .comfortable ? 322 : 278 }
+    var cardHeight: CGFloat { self == .comfortable ? 283 : 243 }
+    var previewHeight: CGFloat { self == .comfortable ? 120 : 83 }
     var cardSpacing: CGFloat { self == .comfortable ? 20 : 14 }
-    var preferredShelfHeight: CGFloat { self == .comfortable ? 498 : 450 }
+    var preferredShelfHeight: CGFloat { self == .comfortable ? 520 : 465 }
 
     /// Respect a user's preferred density except on a small display, where
     /// Comfortable cards would leave too little room for search and controls.
