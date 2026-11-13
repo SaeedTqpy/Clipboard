@@ -708,6 +708,7 @@ struct ClipboardSettingsView: View {
     @ObservedObject var model: ClipboardModel
     @State private var showingRecentClear = false
     @State private var recentClearMinutes = 15
+    @State private var signingAndPermissionSummary = "Press Refresh to inspect the running app's TCC identity."
 
     private var runningApplications: [NSRunningApplication] {
         NSWorkspace.shared.runningApplications
@@ -829,7 +830,13 @@ struct ClipboardSettingsView: View {
                 Text(model.pasteDiagnostic)
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
+                Text(signingAndPermissionSummary)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
                 HStack {
+                    Button("Refresh TCC & Signing Status") {
+                        signingAndPermissionSummary = ClipboardPermissionAudit.summary()
+                    }
                     Button("Copy Paste Diagnostics") { model.copyPasteDiagnostic() }
                     Button("Request Accessibility Permission") {
                         let options = [
@@ -839,6 +846,9 @@ struct ClipboardSettingsView: View {
                         _ = CGRequestPostEventAccess()
                     }
                 }
+                Text("Unsigned builds cannot establish a reliable TCC identity. Ad-hoc signing creates a version-specific identity: when upgrading, install the new version in /Applications, reset only Clipboard's Accessibility grant once, approve the new app, and fully relaunch. Event Posting is related to Accessibility, not Input Monitoring.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("Shows where the last paste attempt stopped. Diagnostics contain no copied text or images. A sent Command+V is not proof that the target accepted it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

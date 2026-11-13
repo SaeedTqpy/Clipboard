@@ -186,7 +186,7 @@ final class ClipboardModel: ObservableObject {
         let board = NSPasteboard.general
         board.clearContents()
         _ = board.setString(
-            "Clipboard Paste Diagnostic\n\(pasteDiagnostic)\nAccessibility: \(AXIsProcessTrusted())\nEvent posting: \(CGPreflightPostEventAccess())",
+            "Clipboard Paste Diagnostic\n\(pasteDiagnostic)\n\(ClipboardPermissionAudit.summary())",
             forType: .string
         )
         onClipboardWrite?()
