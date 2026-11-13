@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://saeedtqpy.github.io/Clipboard/sitemap.xml
