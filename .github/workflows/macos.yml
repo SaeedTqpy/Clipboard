@@ -4,11 +4,6 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  # One-time scoped validation for premium macOS Glass Shelf redesign.
-  push:
-    branches: [main]
-    paths:
-      - ".ci/validate-glass-shelf.txt"
 
 concurrency:
   group: clipboard-manual-build
