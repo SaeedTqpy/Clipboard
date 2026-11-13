@@ -535,33 +535,120 @@ private struct ClipboardTopRoundedShape: Shape {
     }
 }
 
+/// Uses a single system glass canvas instead of a fake opaque black panel.
+/// Dock clearance is *inside* the shelf: the full-screen bottom edge remains
+/// connected to the Dock while the content and controls stay unobscured.
 private struct ClipboardPanelChrome: ViewModifier {
     let presentation: ClipboardPanelPresentation
     let bottomContentInset: CGFloat
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        switch presentation {
-        case .shelf:
-            content
-                .padding(.horizontal, 19)
-                .padding(.top, 12)
-                .padding(.bottom, max(12, bottomContentInset + 10))
-                .frame(minWidth: 300, maxWidth: .infinity,
-                       minHeight: 280, maxHeight: .infinity)
-                .background(.regularMaterial, in: ClipboardTopRoundedShape())
-                .overlay {
-                    ClipboardTopRoundedShape()
-                        .stroke(.white.opacity(0.24), lineWidth: 1)
-                }
-                .clipShape(ClipboardTopRoundedShape())
-        case .management:
-            content
-                .padding(20)
-                .frame(minWidth: 640, maxWidth: .infinity,
-                       minHeight: 420, maxHeight: .infinity)
-                .background(Color(nsColor: .windowBackgroundColor))
+        Group {
+            if presentation == .shelf {
+                content
+                    .padding(.horizontal, 23)
+                    .padding(.top, 16)
+                    .padding(.bottom, max(15, bottomContentInset + 8))
+                    .frame(minWidth: 300, maxWidth: .infinity,
+                           minHeight: 300, maxHeight: .infinity)
+                    .background {
+                        ClipboardGlassBackdrop()
+                    }
+                    .clipShape(ClipboardTopRoundedShape(radius: 27))
+            } else {
+                content
+                    .padding(20)
+                    .frame(minWidth: 720, maxWidth: .infinity,
+                           minHeight: 460, maxHeight: .infinity)
+                    .background(.regularMaterial,
+                                in: RoundedRectangle(cornerRadius: 19))
+            }
         }
+    }
+}
+
+/// An actual macOS 26 Liquid Glass effect combined with a restrained adaptive
+/// material, not a flat color imitation. On macOS 15 this falls back to the
+/// supported system vibrancy material. Decorative layers never steal clicks.
+private struct ClipboardGlassBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var shape: ClipboardTopRoundedShape {
+        ClipboardTopRoundedShape(radius: 27)
+    }
+
+    var body: some View {
+        ZStack {
+            shape.fill(.ultraThinMaterial)
+            if #available(macOS 26, *) {
+                shape
+                    .fill(.white.opacity(0.012))
+                    .glassEffect(
+                        .regular.tint(Color(red: 0.26, green: 0.64, blue: 0.83)
+                            .opacity(0.075)),
+                        in: shape
+                    )
+            }
+            shape.fill(
+                LinearGradient(
+                    colors: colorScheme == .dark
+                        ? [Color(red: 0.18, green: 0.24, blue: 0.35).opacity(0.30),
+                           Color(red: 0.07, green: 0.13, blue: 0.21).opacity(0.10),
+                           Color.clear]
+                        : [Color.white.opacity(0.34),
+                           Color(red: 0.80, green: 0.90, blue: 1.0).opacity(0.13),
+                           Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            shape.stroke(
+                LinearGradient(
+                    colors: [.white.opacity(0.54), .white.opacity(0.16),
+                             .white.opacity(0.05)],
+                    startPoint: .top, endPoint: .bottom
+                ), lineWidth: 1
+            )
+        }
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [.white.opacity(colorScheme == .dark ? 0.17 : 0.48),
+                         .white.opacity(0.02), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 27)
+            .clipShape(shape)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct ClipboardFilterChrome: ViewModifier {
+    let selected: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 12, weight: .semibold))
+            .padding(.horizontal, 16)
+            .frame(height: 35)
+            .foregroundStyle(selected ? .primary : .secondary)
+            .background {
+                Capsule()
+                    .fill(selected
+                          ? Color.accentColor.opacity(0.17)
+                          : Color.primary.opacity(0.055))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(
+                                selected ? Color.accentColor.opacity(0.36)
+                                         : Color.white.opacity(0.14),
+                                lineWidth: 1
+                            )
+                    }
+                    .allowsHitTesting(false)
+            }
+            .buttonStyle(.plain)
     }
 }
 
