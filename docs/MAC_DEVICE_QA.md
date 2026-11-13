@@ -5,7 +5,7 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 
 ## Setup (without local Xcode)
 
-1. In GitHub Actions, manually build and download the successful universal artifact.
+1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) from the successful run (29/29 tests; 2026-11-13). Do not trigger another build for this version.
 2. Unzip the outer artifact archive, then the nested Clipboard-macOS-unsigned.zip.
 3. Copy Clipboard.app to /Applications. For unsigned code, approve **your own trusted build** under System Settings → Privacy & Security if macOS blocks it.
 4. Use the package diagnostic shell script in the repo:

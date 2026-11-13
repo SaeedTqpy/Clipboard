@@ -4,9 +4,10 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 
 ## Build gate
 
-- [ ] Manually run the macOS workflow on the latest commit; avoid push-triggered builds.
-- [ ] All unit tests pass (privacy exclusions, migration, encryption, backup, recovery).
-- [ ] Universal arm64/x86_64 binary is produced, checksum verified.
+- [x] Trigger exactly one restricted milestone validation after fixing failures; restore manual-only CI after it starts.
+- [x] All 29 unit/performance tests pass (privacy exclusions, migration, encryption, backup, recovery).
+- [x] Universal arm64/x86_64 Release was produced; nested ZIP SHA-256 matched SHA256SUMS.txt.
+- [ ] On a real Mac, run the package diagnostic and check macOS security prompts.
 - [ ] Run the app on an actual macOS 26 Mac; check fallback on macOS 15–25.
 - [ ] Verify Liquid Glass effect only on macOS 26; reduced transparency remains usable.
 

@@ -1,6 +1,6 @@
 # Clipboard production release roadmap
 
-## Implemented in source (requires a new manual CI validation run)
+## Implemented in source — macOS CI validated on 2026-11-13 (29/29 tests, universal release)
 
 - SwiftUI + AppKit menu bar utility, floating Liquid Glass-capable shelf, ⌘⇧V.
 - History for text, links, encrypted HTML/RTF content, images, multi-file selections; controls for pin, copy, formatted/plain-text paste, collections, kind filter.
@@ -17,7 +17,7 @@
 
 ## Must verify before beta
 
-1. **Compile the latest commit:** run one manual macOS 26 Actions workflow with tests; capture errors and fix as a batch.
+1. **Build validation passed:** macOS 26 Actions run [43389410106](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) built universal Release and passed all 29 tests. Do not confuse this with hardware/permission acceptance.
 2. **Real device:** Apple Silicon and Intel macOS 15–26, Gatekeeper, Keychain access on unsigned app, Accessibility prompt, actual direct paste, global shortcut conflicts and login item approval.
 3. **Legacy migration:** test against a backup copy of the v2 database and assets. Ensure no plaintext search index or image files remain in active storage after migration.
 4. **Restore:** wrong password, corrupted archive, interrupted import, wrong device, lost Keychain key and missing referenced external files.
