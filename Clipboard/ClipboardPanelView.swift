@@ -3,7 +3,7 @@ import SwiftUI
 import ApplicationServices
 import UniformTypeIdentifiers
 
-enum ClipboardPanelPresentation {
+enum ClipboardPanelPresentation: Equatable {
     case shelf
     case management
 }

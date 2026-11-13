@@ -15,6 +15,18 @@ struct ClipboardApp: App {
     }
 }
 
+enum ClipboardEntrySource {
+    case keyboardShortcut
+    case menuBarClick
+
+    var presentation: ClipboardPanelPresentation {
+        switch self {
+        case .keyboardShortcut: return .shelf
+        case .menuBarClick: return .management
+        }
+    }
+}
+
 private enum ClipboardPanelNavigation {
     case earlier, later, paste, pastePlain, togglePin, delete, quick(Int)
 }
@@ -122,14 +134,9 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         statusContextMenu.delegate = self
         self.statusItem = statusItem
 
-        hotkey = ClipboardGlobalHotkey(preset: model.hotkeyPreset) { [weak self] in
-            self?.togglePanel()
-        }
+        installInitialHotkey()
         model.onHotkeyChange = { [weak self] preset in
             self?.registerHotkey(preset) ?? false
-        }
-        if hotkey?.isRegistered != true {
-            model.message = "Shortcut \(model.hotkeyPreset.displayName) is in use. Quit older Clipboard copies or choose another shortcut in Settings."
         }
         buildPanel()
         buildManagementWindow()
@@ -223,7 +230,35 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
                 in: sender
             )
         } else {
-            showManagementWindow()
+            open(entry: .menuBarClick)
+        }
+    }
+
+    private func open(entry: ClipboardEntrySource) {
+        switch entry.presentation {
+        case .shelf: togglePanel()
+        case .management: showManagementWindow()
+        }
+    }
+
+    private func installInitialHotkey(attempt: Int = 0) {
+        let registration = ClipboardGlobalHotkey(
+            preset: model.hotkeyPreset
+        ) { [weak self] in
+            self?.open(entry: .keyboardShortcut)
+        }
+        if registration.isRegistered {
+            hotkey = registration
+            return
+        }
+        // Older Clipboard processes need a short moment to unregister
+        // Carbon hotkeys after the termination request at startup.
+        if attempt < 4 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+                self?.installInitialHotkey(attempt: attempt + 1)
+            }
+        } else {
+            model.message = "Shortcut \(model.hotkeyPreset.displayName) could not register. Quit older Clipboard instances, then relaunch or choose another shortcut."
         }
     }
 
@@ -361,7 +396,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private func registerHotkey(_ preset: ClipboardHotkeyPreset) -> Bool {
         // Register replacement before dropping the old shortcut; failure is reversible.
         let replacement = ClipboardGlobalHotkey(preset: preset) { [weak self] in
-            self?.togglePanel()
+            self?.open(entry: .keyboardShortcut)
         }
         guard replacement.isRegistered else { return false }
         hotkey = replacement
