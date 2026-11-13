@@ -13,6 +13,31 @@ final class ClipboardHotkeyPresetTests: XCTestCase {
         }
     }
 
+    func testWindowsLogoKeyShortcutMapsToCommandShiftV() {
+        XCTAssertEqual(
+            ClipboardHotkeyPreset.commandShiftV.carbonModifiers,
+            UInt32(cmdKey | shiftKey)
+        )
+        XCTAssertEqual(ClipboardHotkeyPreset.commandShiftV.displayName, "⌘⇧V")
+    }
+
+    func testMigratesOnlyOldDefaultHotkey() {
+        XCTAssertEqual(
+            ClipboardHotkeyPreset.migrateOldDefault(nil), .commandShiftV
+        )
+        XCTAssertEqual(
+            ClipboardHotkeyPreset.migrateOldDefault(
+                ClipboardHotkeyPreset.controlShiftV.rawValue
+            ), .commandShiftV
+        )
+        XCTAssertNil(ClipboardHotkeyPreset.migrateOldDefault(
+            ClipboardHotkeyPreset.commandOptionV.rawValue
+        ))
+        XCTAssertNil(ClipboardHotkeyPreset.migrateOldDefault(
+            ClipboardHotkeyPreset.commandShiftV.rawValue
+        ))
+    }
+
     func testHistoryPeriodProducesBoundedTimeWindow() {
         XCTAssertNil(ClipboardHistoryPeriod.all.startDate)
         for period in [

@@ -11,6 +11,15 @@ enum ClipboardHotkeyPreset: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Upgrade the old default without overwriting unrelated custom hotkeys.
+    /// On standard macOS mappings, the Windows-logo keyboard key is Command.
+    static func migrateOldDefault(_ stored: String?) -> ClipboardHotkeyPreset? {
+        guard stored == nil || stored == ClipboardHotkeyPreset.controlShiftV.rawValue else {
+            return nil
+        }
+        return .commandShiftV
+    }
+
     var displayName: String {
         switch self {
         case .commandShiftV: return "⌘⇧V"

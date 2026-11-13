@@ -68,10 +68,9 @@ final class ClipboardModel: ObservableObject {
         )
         let migrationKey = "clipboard.hotkey.commandShiftMigration.v1"
         if !UserDefaults.standard.bool(forKey: migrationKey) {
-            if savedHotkey == nil ||
-                savedHotkey == ClipboardHotkeyPreset.controlShiftV.rawValue {
+            if let replacement = ClipboardHotkeyPreset.migrateOldDefault(savedHotkey) {
                 UserDefaults.standard.set(
-                    ClipboardHotkeyPreset.commandShiftV.rawValue,
+                    replacement.rawValue,
                     forKey: ClipboardPreferences.hotkeyKey
                 )
             }
