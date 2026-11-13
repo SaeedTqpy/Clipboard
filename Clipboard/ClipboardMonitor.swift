@@ -82,9 +82,10 @@ final class ClipboardMonitor {
            let bytes = pasteboard.data(forType: type),
            bytes.count <= 24 * 1024 * 1024 {
             // Image decoding/conversion never blocks the main RunLoop.
+            let sourceType = type.rawValue
             Task { [weak self] in
                 let png = await Task.detached(priority: .utility) {
-                    ClipboardImageNormalizer.pngData(from: bytes, sourceType: type.rawValue)
+                    ClipboardImageNormalizer.pngData(from: bytes, sourceType: sourceType)
                 }.value
                 guard let self, !self.isPaused,
                       self.lastChangeCount == current, let png else { return }

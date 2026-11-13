@@ -9,7 +9,7 @@ enum ClipboardImageNormalizer {
               let source = CGImageSourceCreateWithData(input as CFData, nil),
               CGImageSourceGetCount(source) >= 1,
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
-                as? [CFString: Any],
+                as NSDictionary?,
               let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
               let height = properties[kCGImagePropertyPixelHeight] as? NSNumber
         else { return nil }
