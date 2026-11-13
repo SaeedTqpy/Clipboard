@@ -4,11 +4,6 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  # One-shot validation; only an explicitly written marker can trigger this.
-  push:
-    branches: [main]
-    paths:
-      - ".ci/one-shot-validate-clipboard.txt"
 
 concurrency:
   group: clipboard-manual-build
