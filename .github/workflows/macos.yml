@@ -61,18 +61,37 @@ jobs:
           iconutil --convert iconset "$ICON" --output "$RUNNER_TEMP/ClipboardVerified.iconset"
           test -s "$RUNNER_TEMP/ClipboardVerified.iconset/icon_512x512@2x.png"
 
-      - name: Package and checksum
+      # TCC uses code identity. An entirely unsigned app has no designated
+      # requirement, so Accessibility can be denied despite the UI toggle.
+      # Ad-hoc signing gives THIS precise binary an identity; it is not a
+      # replacement for a stable Developer ID and changes every build.
+      - name: Ad-hoc sign local preview (TCC identity)
         run: |
-          mkdir -p dist
-          ditto -c -k --sequesterRsrc --keepParent \
-            .derived/Build/Products/Release/Clipboard.app \
-            dist/Clipboard-macOS-unsigned.zip
-          cd dist
-          shasum -a 256 Clipboard-macOS-unsigned.zip > SHA256SUMS.txt
+          set -euo pipefail
+          APP=".derived/Build/Products/Release/Clipboard.app"
+          /usr/bin/codesign --force --sign - --identifier dev.clipboard.app "$APP"
+          /usr/bin/codesign --verify --strict --verbose=2 "$APP"
+          /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | tee "$RUNNER_TEMP/clipboard-signature.txt"
+          grep -q '^Signature=adhoc' "$RUNNER_TEMP/clipboard-signature.txt"
+          grep -q '^Identifier=dev.clipboard.app' "$RUNNER_TEMP/clipboard-signature.txt"
+          /usr/bin/codesign -d -r- "$APP" 2>&1 | tee "$RUNNER_TEMP/clipboard-requirement.txt"
+          grep -q 'designated =>' "$RUNNER_TEMP/clipboard-requirement.txt"
+          test "$( /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" )" = "dev.clipboard.app"
 
-      - name: Upload unsigned application
+      - name: Package signed local preview and checksum
+        run: |
+          set -euo pipefail
+          APP=".derived/Build/Products/Release/Clipboard.app"
+          /usr/bin/codesign --verify --strict "$APP"
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent "$APP" \
+            dist/Clipboard-macOS-adhoc.zip
+          cd dist
+          shasum -a 256 Clipboard-macOS-adhoc.zip > SHA256SUMS.txt
+
+      - name: Upload ad-hoc signed local preview
         uses: actions/upload-artifact@v4
         with:
-          name: Clipboard-macOS-unsigned
+          name: Clipboard-macOS-adhoc
           path: dist/
           retention-days: 14
