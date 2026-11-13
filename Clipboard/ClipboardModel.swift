@@ -13,6 +13,9 @@ final class ClipboardModel: ObservableObject {
     @Published var pinnedOnly = false { didSet { reload() } }
     @Published var selectedKind: ClipKind? = nil { didSet { reload() } }
     @Published var selectedCollection: String? = nil { didSet { reload() } }
+    @Published var selectedSourceApp: String? = nil { didSet { reload() } }
+    @Published var historyPeriod: ClipboardHistoryPeriod = .all { didSet { reload() } }
+    @Published private(set) var sourceApps: [String] = []
     @Published private(set) var collections: [String] = []
     @Published private(set) var pasteStack: [ClipItem] = []
     @Published private(set) var isPaused: Bool
@@ -23,6 +26,9 @@ final class ClipboardModel: ObservableObject {
     }
     @Published var captureFiles: Bool {
         didSet { UserDefaults.standard.set(captureFiles, forKey: ClipboardPreferences.filesKey) }
+    }
+    @Published var recognizeImages: Bool {
+        didSet { UserDefaults.standard.set(recognizeImages, forKey: ClipboardPreferences.ocrKey) }
     }
     @Published var excludedAppsText: String {
         didSet { UserDefaults.standard.set(excludedAppsText, forKey: ClipboardPreferences.excludedAppsKey) }
@@ -49,6 +55,7 @@ final class ClipboardModel: ObservableObject {
     private init() {
         captureImages = ClipboardPreferences.captureImages
         captureFiles = ClipboardPreferences.captureFiles
+        recognizeImages = ClipboardPreferences.recognizeImages
         excludedAppsText = UserDefaults.standard.string(forKey: ClipboardPreferences.excludedAppsKey) ?? ""
         retentionDays = ClipboardPreferences.retentionDays
         retentionCount = ClipboardPreferences.retentionCount
@@ -89,9 +96,15 @@ final class ClipboardModel: ObservableObject {
                 search: searchText,
                 pinnedOnly: pinnedOnly,
                 collection: selectedCollection,
-                kind: selectedKind
+                kind: selectedKind,
+                sourceApp: selectedSourceApp,
+                since: historyPeriod.startDate
             )
             collections = try store.collectionNames()
+            sourceApps = try store.sourceApplicationNames()
+            if let selectedSourceApp, !sourceApps.contains(selectedSourceApp) {
+                self.selectedSourceApp = nil
+            }
             if let selectedCollection, !collections.contains(selectedCollection) {
                 self.selectedCollection = nil
             }
@@ -130,6 +143,46 @@ final class ClipboardModel: ObservableObject {
     func completePasteStackItem(id: String) {
         if pasteStack.first?.id == id {
             pasteStack.removeFirst()
+        }
+    }
+
+    func createSnippet(title: String, body: String) {
+        do {
+            try store?.createSnippet(title: title, body: body)
+            selectedCollection = "Snippets"
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    func edit(_ item: ClipItem, title: String?, text: String?, asSnippet: Bool) {
+        do {
+            try store?.updateClip(
+                id: item.id, title: title, text: text, asSnippet: asSnippet
+            )
+            pasteStack.removeAll { $0.id == item.id }
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    func rename(_ item: ClipItem, title: String?) {
+        do {
+            try store?.rename(id: item.id, to: title)
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    func saveAsSnippet(_ item: ClipItem, title: String) {
+        do {
+            try store?.saveAsSnippet(id: item.id, title: title)
+            reload()
+        } catch {
+            message = error.localizedDescription
         }
     }
 

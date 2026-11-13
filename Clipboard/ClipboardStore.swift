@@ -437,7 +437,8 @@ final class ClipboardStore {
 
     func items(
         search: String, pinnedOnly: Bool = false,
-        collection: String? = nil, kind: ClipKind? = nil
+        collection: String? = nil, kind: ClipKind? = nil,
+        sourceApp: String? = nil, since: Date? = nil
     ) throws -> [ClipItem] {
         // Deliberately avoid a plaintext FTS index. Search occurs over decrypted
         // in-memory records, which must be profiled on large clip histories.
@@ -448,6 +449,8 @@ final class ClipboardStore {
             if pinnedOnly && !item.pinned { continue }
             if let collection, item.collection != collection { continue }
             if let kind, item.kind != kind { continue }
+            if let sourceApp, item.sourceApp != sourceApp { continue }
+            if let since, item.createdAt < since { continue }
             if !terms.allSatisfy({
                 item.preview.localizedStandardContains($0)
                 || (item.displayName?.localizedStandardContains($0) ?? false)
@@ -458,6 +461,61 @@ final class ClipboardStore {
             if result.count >= 500 { break }
         }
         return result
+    }
+
+    func sourceApplicationNames() throws -> [String] {
+        Array(Set(try allRows().map { $0.item.sourceApp })).sorted {
+            $0.localizedStandardCompare($1) == .orderedAscending
+        }
+    }
+
+    /// Named snippets are intentionally pinned; they survive history expiry.
+    func createSnippet(title: String, body: String) throws {
+        let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let clean = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 120,
+              !clean.isEmpty, body.utf8.count <= 2 * 1024 * 1024 else {
+            throw ClipboardStoreError.database("Snippet title and content are required.")
+        }
+        let payload = ClipPayload(
+            kind: ClipText.kind(for: body),
+            preview: ClipText.preview(body), body: body
+        )
+        try execute("BEGIN IMMEDIATE;")
+        do {
+            try saveInternal(payload, sourceApp: "Clipboard Snippets",
+                             createdAt: Date().timeIntervalSince1970)
+            let fp = vault.fingerprint(for: payload.fingerprint)
+            guard let saved = try rowForFingerprint(fp) else {
+                throw ClipboardStoreError.database("Could not create snippet.")
+            }
+            try saveAsSnippet(id: saved.item.id, title: name)
+            try execute("COMMIT;")
+        } catch {
+            try? execute("ROLLBACK;")
+            decryptedCache = nil
+            throw error
+        }
+    }
+
+    /// Atomic update of an existing clip's encrypted name and text.
+    func updateClip(
+        id: String, title: String?, text: String?, asSnippet: Bool
+    ) throws {
+        try execute("BEGIN IMMEDIATE;")
+        do {
+            if let text { try editText(id: id, newText: text) }
+            if asSnippet {
+                try saveAsSnippet(id: id, title: title ?? "Snippet")
+            } else {
+                try rename(id: id, to: title)
+            }
+            try execute("COMMIT;")
+        } catch {
+            try? execute("ROLLBACK;")
+            decryptedCache = nil
+            throw error
+        }
     }
 
     func collectionNames() throws -> [String] {
