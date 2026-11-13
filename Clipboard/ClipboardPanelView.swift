@@ -35,6 +35,7 @@ struct ClipboardPanelView: View {
 
     @FocusState private var searchFocused: Bool
     @State private var showingSettings = false
+    @State private var showingQuickPasteSetup = false
     @State private var showingCollectionAlert = false
     @State private var newCollectionName = ""
     @State private var newCollectionItem: ClipItem?
@@ -107,6 +108,11 @@ struct ClipboardPanelView: View {
                 showingSettings = true
             }
         }
+        .onChange(of: model.quickPasteSetupPresentationID) { _, _ in
+            if presentation == .management {
+                showingQuickPasteSetup = true
+            }
+        }
         .onKeyPress { press in
             guard press.phase == .down,
                   press.modifiers.contains(.command),
@@ -119,6 +125,9 @@ struct ClipboardPanelView: View {
         }
         .sheet(isPresented: $showingSettings) {
             ClipboardSettingsView(model: model)
+        }
+        .sheet(isPresented: $showingQuickPasteSetup) {
+            ClipboardQuickPasteSetupView()
         }
         .sheet(item: $editingClip) { item in
             ClipboardClipEditorView(item: item) { title, content, asSnippet in

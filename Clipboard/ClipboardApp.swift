@@ -159,9 +159,23 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         buildPanel()
         buildManagementWindow()
         let onboardingKey = "clipboard.hasOpenedOnce"
-        if UserDefaults.standard.object(forKey: onboardingKey) == nil {
+        let hasOpenedBefore = UserDefaults.standard.bool(forKey: onboardingKey)
+        if !hasOpenedBefore {
             UserDefaults.standard.set(true, forKey: onboardingKey)
-            DispatchQueue.main.async { [weak self] in self?.showManagementWindow() }
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.showManagementWindow()
+                if ClipboardQuickPasteSetupPolicy.shouldPresentOnFirstLaunch(
+                    hasOpenedBefore: false,
+                    canPostEvents: CGPreflightPostEventAccess()
+                ) {
+                    // Present only after Manager becomes visible. Requesting TCC
+                    // permissions always requires an explicit user click.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.model.quickPasteSetupPresentationID &+= 1
+                    }
+                }
+            }
         }
     }
 
@@ -181,6 +195,12 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             keyEquivalent: ""
         ))
         menu.addItem(.separator())
+        if !CGPreflightPostEventAccess() {
+            menu.addItem(NSMenuItem(
+                title: "Enable Quick Paste…",
+                action: #selector(openQuickPasteSetup), keyEquivalent: ""
+            ))
+        }
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Clear All History…", action: #selector(confirmClear), keyEquivalent: ""))
         menu.addItem(.separator())
@@ -321,6 +341,11 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
     @objc private func openManager() { showManagementWindow() }
     @objc private func openPanel() { showPanel() }
+
+    @objc private func openQuickPasteSetup() {
+        showManagementWindow()
+        model.quickPasteSetupPresentationID &+= 1
+    }
 
     @objc private func openSettings() {
         showManagementWindow()

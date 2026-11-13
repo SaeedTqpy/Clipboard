@@ -116,3 +116,21 @@ Sources: [Apple reset documentation](https://developer.apple.com/documentation/x
 ## New PostEvent permission artifact
 
 [Build #43501819795](https://github.com/SaeedTqpy/Clipboard/actions/runs/43501819795) passes **66/66 tests** with Ad-hoc signing and a verified ZIP checksum. After installing this version, **quit Clipboard**, run `tccutil reset PostEvent dev.clipboard.app`, relaunch from `/Applications`, use **Request Event Posting Access** in Settings, approve, fully quit and relaunch again. In the audit, `Event Posting (PostEvent): true` is the gate for the CGEvent shortcut. This build is not proof of a real-world paste until tested on the user Mac.
+
+
+## First-install UX (new)
+
+The first launch checks `CGPreflightPostEventAccess()` and, if permission is
+missing, presents a purpose-built Quick Paste setup sheet in the Manager.
+The user clicks **Request Paste Access**, which calls the macOS
+`CGRequestPostEventAccess()` API. Alternatively, the user can open Privacy
+Settings, refresh the permission state, or continue with copy-only mode.
+Right-clicking the Menu Bar icon exposes **Enable Quick Paste…** while
+PostEvent is missing.
+
+No app code can approve its own macOS TCC permission, silently run a TCC reset,
+or make a new ad-hoc signature inherit approvals from the old app version.
+The onboarding sheet addresses installation UX, **not** the identity change
+across repeated CI artifacts. For reliable public updates, replace ad-hoc signing
+with the same Apple-issued Developer ID Application identity on every release
+and notarize the distribution; do not embed signing keys in source control.
