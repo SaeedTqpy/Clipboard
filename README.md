@@ -170,3 +170,8 @@ Apple explicitly lists **PostEvent** as its own TCC service for sending keystrok
 ## Premium Glass Shelf (macOS 26+)
 
 The redesigned Quick Shelf is pinned to the **physical bottom edge** and visually meets the Dock, while its controls remain unobscured. It uses **native Liquid Glass** on macOS 26 and system vibrancy on macOS 15, with larger 322pt cards, readable type-specific previews, softer colors, hover feedback, an accessible filter toolbar and a **Comfortable/Compact** density menu. Compact uses 278pt cards and is selected automatically on very short displays. Changing density resizes the Shelf; it does not change clipboard history or security. **One-click paste behavior is preserved**: selecting the card preview pastes; Copy and More do not. Read the [design system and real-device QA](docs/SHELF_AND_TAGS.md).
+
+
+### Latest verified Liquid Glass release — 2026-11-13
+
+[macOS Actions #43508693436](https://github.com/SaeedTqpy/Clipboard/actions/runs/43508693436) passed **70/70 XCTest cases**, including the new Dock geometry and density tests, and produced an Ad-hoc-signed Universal app with arm64 and x86_64 binaries. The published artifact **Clipboard-macOS-adhoc** contains the installable app ZIP and SHA256SUMS. The nested ZIP checksum was verified. This confirms build correctness; native reflections, visual polish, Dock stacking, and paste focus still require **real-Mac visual QA**.

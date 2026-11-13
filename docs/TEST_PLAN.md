@@ -207,3 +207,13 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [ ] User search, filters, tags, metadata and error messages stay readable in dark and light themes.
 - [ ] Card hover respects Reduce Motion. No nested card buttons and no click interception by decorations.
 - [ ] Paste and manager navigation behavior from existing validated tests remain intact.
+
+
+### Verified Glass Shelf automated results — 2026-11-13
+
+- [x] [macOS CI #43508693436](https://github.com/SaeedTqpy/Clipboard/actions/runs/43508693436) — **70/70 XCTest passed**.
+- [x] Dock geometry tests: physical bottom anchor, bottom Dock padding, left/right Dock no false gap, negative-coordinate secondary monitor.
+- [x] Comfortable/Compact density and compact-screen fallback tests.
+- [x] Universal Release contains arm64 and x86_64, system app icon, valid ad-hoc signature and designated requirement.
+- [x] Published inner app ZIP SHA-256 matches SHA256SUMS.
+- [ ] Visual acceptance on actual macOS 26 for glass depth, readable cards, Dock stacking, hover, Reduce Motion and paste focus.

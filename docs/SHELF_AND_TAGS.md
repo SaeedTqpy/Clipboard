@@ -101,3 +101,8 @@ state and accessible button labels. Horizontal virtualization remains a
 - Apple — [GlassEffectContainer](https://developer.apple.com/documentation/swiftui/glasseffectcontainer)
 - Apple — [Build an AppKit app with the new design (WWDC25)](https://developer.apple.com/videos/play/wwdc2025/310/)
 - Apple — [NSScreen.visibleFrame](https://developer.apple.com/documentation/appkit/nsscreen/visibleframe)
+
+
+## Verified CI milestone
+
+[GitHub Actions #43508693436](https://github.com/SaeedTqpy/Clipboard/actions/runs/43508693436) completed with **70 passing tests**, a native macOS 26 build, verified app icon, arm64/x86_64 release, and valid ad-hoc signature. The artifact inner app ZIP has the published matching SHA-256. **Automation did not measure actual Dock z-order, liquid-reflection quality or application focus on a user's Mac**; use the acceptance checklist above.
