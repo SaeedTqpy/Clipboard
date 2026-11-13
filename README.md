@@ -6,7 +6,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 **[Experience the interactive 3D website](https://saeedtqpy.github.io/Clipboard/)** · **[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
 
-> **Developer preview · v0.2.0.** The November 13, 2026 bottom-shelf and color-tags build passed **55/55 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
+> **Developer preview · v0.2.0.** The November 13, 2026 bottom-shelf and color-tags build passed **57/57 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 
 
 **App icon:** the app includes an original, resolution-independent glass clipboard icon (see [icon implementation](docs/APP_ICON.md)).
@@ -45,7 +45,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 ## Download & install
 
-The latest verified CI build is [Clipboard macOS Actions run #43436682354](https://github.com/SaeedTqpy/Clipboard/actions/runs/43436682354) (November 13, 2026).
+The latest verified CI build is [Clipboard macOS Actions run #43463188294](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294) (November 13, 2026).
 
 1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
 2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
@@ -126,7 +126,7 @@ Clipboard/
 └── .github/workflows/  Manual macOS build and tests
 ```
 
-**Build evidence:** [55/55 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43436682354). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
+**Build evidence:** [57/57 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
 
 ## Contributing and support
 
