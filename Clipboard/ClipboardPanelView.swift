@@ -586,6 +586,7 @@ private struct ClipCard: View {
                 .padding(.horizontal, 11)
                 .padding(.top, 11)
                 }
+                .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -670,6 +671,7 @@ private struct ClipCard: View {
                     isSelected ? item.kind.ribbonColor : .white.opacity(0.15),
                     lineWidth: isSelected ? 2 : 1
                 )
+                .allowsHitTesting(false)
         }
         .shadow(color: isSelected ? item.kind.ribbonColor.opacity(0.12) : .clear,
                 radius: 12)

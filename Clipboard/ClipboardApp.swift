@@ -82,11 +82,29 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private var hotkey: ClipboardGlobalHotkey?
     private var outsideClickMonitor: Any?
     private var previousApp: NSRunningApplication?
+    private var lastExternalApp: NSRunningApplication?
+    private var appActivationObserver: NSObjectProtocol?
+    private var pasteRequestID = 0
     private var panelTransitionID = 0
     private var isClosingShelf = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+
+        if let current = NSWorkspace.shared.frontmostApplication {
+            rememberExternalApplication(current)
+        }
+        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let candidate = notification.userInfo?[
+                NSWorkspace.applicationUserInfoKey
+            ] as? NSRunningApplication else { return }
+            Task { @MainActor [weak self] in
+                self?.rememberExternalApplication(candidate)
+            }
+        }
 
         // A previous unsigned build may still be running from Downloads or
         // another Applications folder. Request its normal termination so it
@@ -262,12 +280,29 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         }
     }
 
+    private func rememberExternalApplication(_ app: NSRunningApplication) {
+        guard !app.isTerminated,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              app.activationPolicy == .regular else { return }
+        lastExternalApp = app
+    }
+
+    private func capturePasteDestination() {
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        if let frontmost { rememberExternalApplication(frontmost) }
+        let pid = ClipboardPasteDestination.choose(
+            frontmostPID: frontmost?.processIdentifier,
+            fallbackPID: lastExternalApp?.processIdentifier,
+            ownPID: ProcessInfo.processInfo.processIdentifier
+        )
+        previousApp = [frontmost, lastExternalApp].compactMap { $0 }.first {
+            $0.processIdentifier == pid && !$0.isTerminated
+        }
+    }
+
     private func showManagementWindow() {
         guard let managementWindow else { return }
-        let foreground = NSWorkspace.shared.frontmostApplication
-        if foreground?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-            previousApp = foreground
-        }
+        capturePasteDestination()
         // There is exactly one visible Clipboard surface at any time.
         hidePanelImmediately()
         NSApp.activate(ignoringOtherApps: true)
@@ -294,10 +329,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             model.panelPresentationID &+= 1
             return
         }
-        let foreground = NSWorkspace.shared.frontmostApplication
-        if foreground?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-            previousApp = foreground
-        }
+        capturePasteDestination()
+        pasteRequestID &+= 1
         // A keyboard shortcut must never reveal the manager as a second window.
         managementWindow?.orderOut(nil)
         model.searchText = ""
@@ -445,41 +478,83 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         asPlainText: Bool = false,
         onPosted: (() -> Void)? = nil
     ) {
-        let copied = asPlainText ? model.copyAsPlainText(item) : model.copy(item)
-        guard copied else { return }
-        guard AXIsProcessTrusted() else {
-            model.message = "Copied. To paste automatically, enable Clipboard under System Settings → Privacy & Security → Accessibility."
-            hidePanelImmediately()
-            return
-        }
+        // The selected target is frozen when the shelf opens. Never rediscover
+        // the target after a click, when Clipboard itself can be key/frontmost.
         guard let target = previousApp, !target.isTerminated,
               target.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            model.message = "Copied. No previous application is available for automatic paste."
-            hidePanelImmediately()
+            model.message = "No paste destination. Click inside an editable field in Notes, Safari or your editor, then open Clipboard again."
             return
         }
-        // Paste must release the key panel immediately before restoring focus.
-        // Keyboard delivery takes priority over the decorative close animation.
+        let copied = asPlainText ? model.copyAsPlainText(item) : model.copy(item)
+        guard copied else { return }
+
+        // AX alone does not guarantee permission to post synthesized events.
+        // Without permission the old implementation silently copied and
+        // dismissed: users understandably perceived it as a broken Paste.
+        guard AXIsProcessTrusted(), CGPreflightPostEventAccess() else {
+            let options = [
+                kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+            ] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+            _ = CGRequestPostEventAccess()
+            model.message = "Copied but not pasted. Allow Clipboard in System Settings → Privacy & Security → Accessibility, then quit and reopen Clipboard. Click Paste again."
+            // Stay visible so this actionable reason is not hidden in a closed shelf.
+            return
+        }
+
+        // Release every Clipboard key window before attempting to restore
+        // keyboard focus. The manager can otherwise retain the key window.
         hidePanelImmediately()
-        guard target.activate(options: []) else {
-            model.message = "Copied. Could not restore the destination application."
+        managementWindow?.orderOut(nil)
+        pasteRequestID &+= 1
+        let requestID = pasteRequestID
+        let pid = target.processIdentifier
+
+        if !target.isActive, !target.activate(options: []) {
+            model.message = "Copied, but macOS refused to activate \(target.localizedName ?? "the destination"). Paste manually with ⌘V."
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            // Never synthesize Cmd+V into a different application than the intended target.
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier
-            else {
-                self?.model.message = "Copied. Focus changed before the paste command."
+
+        func deliver(_ attempt: Int) {
+            guard requestID == pasteRequestID, !target.isTerminated else { return }
+            let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            if !ClipboardPasteDestination.mayPost(
+                targetPID: pid, frontmostPID: frontmost,
+                ownPID: ProcessInfo.processInfo.processIdentifier
+            ) {
+                if attempt < 6 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
+                        deliver(attempt + 1)
+                    }
+                } else {
+                    model.message = "Copied, but focus did not return to \(target.localizedName ?? "the destination"). Press ⌘V manually. Click in a text field before opening the shelf."
+                }
                 return
             }
-            guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0x09, keyDown: true),
-                  let up = CGEvent(keyboardEventSource: nil, virtualKey: 0x09, keyDown: false)
-            else { return }
+
+            let source = CGEventSource(stateID: .hidSystemState)
+            guard let down = CGEvent(
+                      keyboardEventSource: source,
+                      virtualKey: UInt16(kVK_ANSI_V), keyDown: true
+                  ), let up = CGEvent(
+                      keyboardEventSource: source,
+                      virtualKey: UInt16(kVK_ANSI_V), keyDown: false
+                  ) else {
+                model.message = "Copied, but macOS could not create a Paste keyboard event."
+                return
+            }
             down.flags = .maskCommand
             up.flags = .maskCommand
-            down.post(tap: .cghidEventTap)
-            up.post(tap: .cghidEventTap)
+
+            // Deliver to the remembered process rather than the HID tap.
+            // A nonactivating NSPanel may temporarily be key even when
+            // NSWorkspace still reports the previous app as frontmost.
+            down.postToPid(pid)
+            up.postToPid(pid)
             onPosted?()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            deliver(0)
         }
     }
 
