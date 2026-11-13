@@ -1,2 +1,2 @@
-2026-11-13 milestone validation
-This marker is the only push event allowed to start a GitHub Actions run.
+2026-11-13 consolidated validation attempt 2
+Fixes: cache invalidation, SQLite cleanup, corrupt DB handling; run full macOS tests and universal Release.
