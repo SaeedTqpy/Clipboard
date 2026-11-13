@@ -247,7 +247,13 @@ struct ClipboardPanelView: View {
                                     onCopyRecognizedText: {
                                         model.copyRecognizedText(item)
                                     },
-                                    onSelect: { model.selectedClipID = item.id },
+                                    onPrimaryClick: {
+                                        if presentation == .shelf {
+                                            onPaste(item)
+                                        } else {
+                                            model.selectedClipID = item.id
+                                        }
+                                    },
                                     tags: model.tags,
                                     onApplyTag: { tag in model.attachTag(tag, to: item) },
                                     onRemoveTag: { id in model.detachTag(id, from: item) },
@@ -457,7 +463,7 @@ private struct ClipCard: View {
     let onEdit: () -> Void
     let onSaveSnippet: () -> Void
     let onCopyRecognizedText: () -> Void
-    let onSelect: () -> Void
+    let onPrimaryClick: () -> Void
     let tags: [ClipTag]
     let onApplyTag: (ClipTag) -> Void
     let onRemoveTag: (String) -> Void

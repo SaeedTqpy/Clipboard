@@ -60,9 +60,26 @@ final class ClipboardModel: ObservableObject {
     var databaseUnavailable: Bool { store == nil }
 
     private init() {
+        // The old Ctrl+Shift+V default is migrated once to the requested
+        // Windows-key / Command+Shift+V shortcut. Preserve other explicit choices.
+        // On a standard Mac key mapping, the Windows key acts as Command.
+        let savedHotkey = UserDefaults.standard.string(
+            forKey: ClipboardPreferences.hotkeyKey
+        )
+        let migrationKey = "clipboard.hotkey.commandShiftMigration.v1"
+        if !UserDefaults.standard.bool(forKey: migrationKey) {
+            if savedHotkey == nil ||
+                savedHotkey == ClipboardHotkeyPreset.controlShiftV.rawValue {
+                UserDefaults.standard.set(
+                    ClipboardHotkeyPreset.commandShiftV.rawValue,
+                    forKey: ClipboardPreferences.hotkeyKey
+                )
+            }
+            UserDefaults.standard.set(true, forKey: migrationKey)
+        }
         hotkeyPreset = ClipboardHotkeyPreset(
             rawValue: UserDefaults.standard.string(forKey: ClipboardPreferences.hotkeyKey) ?? ""
-        ) ?? .controlShiftV
+        ) ?? .commandShiftV
         captureImages = ClipboardPreferences.captureImages
         captureFiles = ClipboardPreferences.captureFiles
         recognizeImages = ClipboardPreferences.recognizeImages

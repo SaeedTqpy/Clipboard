@@ -449,13 +449,13 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         guard copied else { return }
         guard AXIsProcessTrusted() else {
             model.message = "Copied. To paste automatically, enable Clipboard under System Settings → Privacy & Security → Accessibility."
-            hidePanel()
+            hidePanelImmediately()
             return
         }
         guard let target = previousApp, !target.isTerminated,
               target.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
             model.message = "Copied. No previous application is available for automatic paste."
-            hidePanel()
+            hidePanelImmediately()
             return
         }
         // Paste must release the key panel immediately before restoring focus.
