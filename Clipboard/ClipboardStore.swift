@@ -575,7 +575,7 @@ final class ClipboardStore {
         do { original = try unpackRow(lookup) }
         catch { sqlite3_finalize(lookup); throw error }
         sqlite3_finalize(lookup)
-        guard [.text, .link, .richText].contains(original.item.kind) else {
+        guard [.text, .link, .richText, .color].contains(original.item.kind) else {
             throw ClipboardStoreError.database("Only text-based clips can be edited.")
         }
         let kind = ClipText.kind(for: newText)

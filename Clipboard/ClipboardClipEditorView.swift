@@ -12,7 +12,7 @@ struct ClipboardClipEditorView: View {
     @State private var showDiscardConfirmation = false
 
     private var editable: Bool {
-        [.text, .link, .richText].contains(item.kind)
+        [.text, .link, .richText, .color].contains(item.kind)
     }
 
     init(item: ClipItem, onSave: @escaping (String?, String?, Bool) -> Void) {

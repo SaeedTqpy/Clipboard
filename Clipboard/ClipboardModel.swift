@@ -280,7 +280,7 @@ final class ClipboardModel: ObservableObject {
 
         let success: Bool
         switch item.kind {
-        case .text, .link:
+        case .text, .link, .color:
             success = board.setString(item.body ?? item.preview, forType: .string)
         case .richText:
             let plain = board.setString(item.body ?? item.preview, forType: .string)
@@ -338,7 +338,7 @@ final class ClipboardModel: ObservableObject {
 
     @discardableResult
     func copyAsPlainText(_ item: ClipItem) -> Bool {
-        guard [.text, .link, .richText].contains(item.kind) else {
+        guard [.text, .link, .richText, .color].contains(item.kind) else {
             message = "This item has no plain text representation."
             return false
         }

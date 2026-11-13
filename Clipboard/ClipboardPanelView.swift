@@ -341,7 +341,23 @@ private struct ClipCard: View {
             .font(.system(size: 12))
 
             Group {
-                if item.kind == .image {
+                if item.kind == .color,
+                   let rgba = ClipColor.hexValue(item.body ?? item.preview) {
+                    VStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                Color(red: rgba.red, green: rgba.green, blue: rgba.blue)
+                                    .opacity(rgba.alpha)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder(.primary.opacity(0.12))
+                            }
+                        Text(item.body ?? item.preview)
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if item.kind == .image {
                     VStack(spacing: 3) {
                         ClipboardThumbnailView(source: thumbnailSource)
                         if item.recognizedText != nil {
@@ -379,7 +395,7 @@ private struct ClipCard: View {
                 Spacer(minLength: 0)
                 Menu {
                     Button("Edit / Rename…", systemImage: "pencil", action: onEdit)
-                    if [.text, .link, .richText].contains(item.kind) {
+                    if [.text, .link, .richText, .color].contains(item.kind) {
                         Button("Save as Snippet", systemImage: "text.book.closed",
                                action: onSaveSnippet)
                     }

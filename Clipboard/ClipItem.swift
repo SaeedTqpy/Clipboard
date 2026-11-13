@@ -5,6 +5,7 @@ enum ClipKind: String, CaseIterable {
     case text
     case link
     case richText
+    case color
     case image
     case file
 
@@ -13,6 +14,7 @@ enum ClipKind: String, CaseIterable {
         case .text: return "text.alignleft"
         case .link: return "link"
         case .richText: return "doc.richtext"
+        case .color: return "paintpalette.fill"
         case .image: return "photo"
         case .file: return "doc"
         }
@@ -85,6 +87,9 @@ enum ClipText {
 
     static func kind(for text: String) -> ClipKind {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ClipColor.hexValue(trimmed) != nil {
+            return .color
+        }
         if let url = URL(string: trimmed),
            let scheme = url.scheme?.lowercased(),
            ["https", "http"].contains(scheme), url.host != nil {
