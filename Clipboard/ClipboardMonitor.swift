@@ -5,7 +5,8 @@ import AppKit
 final class ClipboardMonitor {
     typealias Capture = (ClipPayload, String) -> Void
 
-    private let pasteboard = NSPasteboard.general
+    private let pasteboard: NSPasteboard
+    private let sourceInfo: () -> (bundleID: String, appName: String)
     private let capture: Capture
     private var lastChangeCount: Int
     private var timer: Timer?
@@ -16,15 +17,24 @@ final class ClipboardMonitor {
         }
     }
 
-    init(capture: @escaping Capture) {
+    init(
+        pasteboard: NSPasteboard = .general,
+        sourceInfo: @escaping () -> (bundleID: String, appName: String) = {
+            let source = NSWorkspace.shared.frontmostApplication
+            return (source?.bundleIdentifier ?? "", source?.localizedName ?? "Unknown App")
+        },
+        capture: @escaping Capture
+    ) {
+        self.pasteboard = pasteboard
+        self.sourceInfo = sourceInfo
         self.capture = capture
-        self.lastChangeCount = NSPasteboard.general.changeCount
+        self.lastChangeCount = pasteboard.changeCount
     }
 
     func start() {
         guard timer == nil else { return }
         let timer = Timer(timeInterval: 0.65, repeats: true) { [weak self] _ in
-            self?.poll()
+            self?.pollOnce()
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
@@ -40,14 +50,15 @@ final class ClipboardMonitor {
         lastChangeCount = pasteboard.changeCount
     }
 
-    private func poll() {
+    /// Deterministic test seam: tests call this with a uniquely named pasteboard.
+    func pollOnce() {
         let current = pasteboard.changeCount
         guard current != lastChangeCount else { return }
         lastChangeCount = current
         guard !isPaused else { return }
 
-        let source = NSWorkspace.shared.frontmostApplication
-        let bundleID = (source?.bundleIdentifier ?? "").lowercased()
+        let source = sourceInfo()
+        let bundleID = source.bundleID.lowercased()
         let typeNames = (pasteboard.types ?? []).map(\.rawValue)
         guard !ClipboardPrivacy.shouldIgnore(
             bundleID: bundleID,
@@ -55,7 +66,7 @@ final class ClipboardMonitor {
             customBundleIDs: ClipboardPreferences.excludedBundleIDs
         ) else { return }
 
-        let appName = source?.localizedName ?? "Unknown App"
+        let appName = source.appName
 
         if ClipboardPreferences.captureFiles,
            let urls = pasteboard.readObjects(
