@@ -6,10 +6,11 @@ The shelf behaves like an extension of the Dock rather than another floating win
 
 ## Window lifecycle
 
-- `ClipboardShelfLayout.frame(in:)` computes a near-display-wide frame from `NSScreen.visibleFrame`; the Dock and menu bar are respected.
-- `hiddenFrame(for:displayFrame:)` moves the panel below the physical screen edge. `NSAnimationContext` provides a 380ms eased entrance and a 220ms exit.
+- `ClipboardShelfLayout.frame(in:visibleFrame:)` anchors the shelf at **NSScreen.frame.minY** with the full physical screen width, so no empty strip appears below it. `visibleFrame` only determines internal content padding to prevent buttons from overlapping a bottom Dock.
+- `hiddenFrame(for:displayFrame:)` moves the full-width panel below the physical screen edge. The shelf has rounded **top** corners only; the bottom is squared off and has no floating-window shadow. `NSAnimationContext` provides a 380ms eased entrance and a 220ms exit.
 - The active display follows mouse position, even with negative screen coordinates.
 - With `NSWorkspace.accessibilityDisplayShouldReduceMotion` enabled, show/hide is immediate.
+- The global hotkey shows **only the Quick Shelf**; clicking the menu bar icon shows **only the Clipboard Manager** in a resizable native window. Showing either surface hides the other. Right-click the icon to access the context menu.
 - Normal dismissals slide down. A Paste action closes immediately so the destination app can regain key focus before Cmd+V. This focus protection is more important than a decorative exit animation.
 - Device verification is necessary: successful CI does not prove focus restoration in Notes, Finder or third-party apps.
 

@@ -71,6 +71,19 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 
 Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43417580697).
 
+## Separate Quick Shelf and Clipboard Manager (new milestone)
+
+- [ ] The Quick Shelf starts at the **physical screen bottom** with no gap, including when a Dock is visible.
+- [ ] The lower shelf corners are square and no drop shadow makes it appear detached.
+- [ ] **Control+Shift+V** opens only Quick Shelf; it does not open the manager. Confirm the active hotkey in Settings if migrated from an older version.
+- [ ] Left-click the menu bar icon: a normal, movable, resizable Clipboard Manager opens; Quick Shelf is hidden.
+- [ ] Right-click the menu bar icon: context menu with Pause/Settings/Quit is displayed.
+- [ ] Open the manager first then press the hotkey: only Quick Shelf remains. Open the shelf first then click the menu bar icon: only Manager remains.
+- [ ] Run an old app version at the same time as the new build; verify that the new build requests graceful termination of the old same-bundle-id copy, and no two windows respond to one shortcut.
+- [ ] Verify the Dock doesn't hide card buttons despite the outer shelf reaching the bottom edge.
+- [ ] Check app focus and automatic Paste after transitioning from manager to shelf.
+- [ ] Verify secondary-monitor physical screen coordinates and Reduce Motion.
+
 ## Bottom shelf and encrypted tags
 
 - [ ] On macOS 15 and 26, show the shelf and confirm it slides up from beneath the physical screen edge, without presenting as a centered window.

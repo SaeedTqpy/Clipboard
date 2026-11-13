@@ -15,7 +15,9 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 ## On-device gates
 
 - [ ] Start paused, then opt-in. Old clipboard entries must not backfill.
-- [ ] Test ⌘⇧V with Notes and Finder frontmost; shelf must slide up from the bottom and hide down, not open centered. Check the screen under the pointer and Spaces.
+- [ ] Test **Ctrl+Shift+V** with Notes and Finder frontmost: only the full-width Shelf appears, flush to the **physical bottom edge**; it slides up/down and has square bottom corners. Check the screen under the pointer and Spaces.
+- [ ] Left-click the Menu Bar icon to open a distinct **Clipboard Manager** window; right-click for Settings/Quit. Check manager and shelf never remain visible together.
+- [ ] Quit older installed Clipboard instances before opening the new app; otherwise their hotkey registrations can interfere.
 - [ ] Check Reduce Motion: animation disabled, shelf still usable.
 - [ ] Create and apply colored tags on two synthetic clips, filter by a tag, edit it, and confirm encrypted backup restores it.
 - [ ] Test copying and pasting a synthetic text item with and without Accessibility authorization.
