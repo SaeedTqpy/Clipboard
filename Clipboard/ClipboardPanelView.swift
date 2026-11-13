@@ -3,8 +3,15 @@ import SwiftUI
 import ApplicationServices
 import UniformTypeIdentifiers
 
+enum ClipboardPanelPresentation {
+    case shelf
+    case management
+}
+
 struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
+    let presentation: ClipboardPanelPresentation
+    let bottomContentInset: CGFloat
     let onDismiss: () -> Void
     let onPaste: (ClipItem) -> Void
     let onPastePlain: (ClipItem) -> Void
@@ -306,22 +313,20 @@ struct ClipboardPanelView: View {
                 .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
             }
         }
-        .padding(.horizontal, 19)
-        .padding(.vertical, 13)
-        .frame(minWidth: 300, maxWidth: .infinity, minHeight: 280, maxHeight: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 23, style: .continuous)
-                .strokeBorder(.white.opacity(0.24), lineWidth: 1)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
-        .shadow(color: .black.opacity(0.28), radius: 35, y: -8)
+        .modifier(ClipboardPanelChrome(
+            presentation: presentation,
+            bottomContentInset: bottomContentInset
+        ))
         .onExitCommand(perform: onDismiss)
-        .onChange(of: model.panelPresentationID) { _, _ in
+        .onChange(of: presentation == .shelf
+                      ? model.panelPresentationID
+                      : model.managerPresentationID) { _, _ in
             searchFocused = true
         }
         .onChange(of: model.settingsPresentationID) { _, _ in
-            showingSettings = true
+            if presentation == .management {
+                showingSettings = true
+            }
         }
         .onKeyPress { press in
             guard press.phase == .down,
@@ -369,6 +374,61 @@ struct ClipboardPanelView: View {
             Button("Cancel", role: .cancel) { newCollectionItem = nil }
         } message: {
             Text("Give this collection a name, up to 60 characters.")
+        }
+    }
+}
+
+/// Unlike a floating window, the quick shelf has two square bottom corners,
+/// no detached shadow, and material that meets the physical screen edge.
+private struct ClipboardTopRoundedShape: Shape {
+    var radius: CGFloat = 20
+
+    func path(in rect: CGRect) -> Path {
+        let r = min(radius, rect.width / 2, rect.height / 2)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + r))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - r, y: rect.minY),
+            control: CGPoint(x: rect.maxX, y: rect.minY)
+        )
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.minY + r),
+            control: CGPoint(x: rect.minX, y: rect.minY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct ClipboardPanelChrome: ViewModifier {
+    let presentation: ClipboardPanelPresentation
+    let bottomContentInset: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch presentation {
+        case .shelf:
+            content
+                .padding(.horizontal, 19)
+                .padding(.top, 12)
+                .padding(.bottom, max(12, bottomContentInset + 10))
+                .frame(minWidth: 300, maxWidth: .infinity,
+                       minHeight: 280, maxHeight: .infinity)
+                .background(.regularMaterial, in: ClipboardTopRoundedShape())
+                .overlay {
+                    ClipboardTopRoundedShape()
+                        .stroke(.white.opacity(0.24), lineWidth: 1)
+                }
+                .clipShape(ClipboardTopRoundedShape())
+        case .management:
+            content
+                .padding(20)
+                .frame(minWidth: 640, maxWidth: .infinity,
+                       minHeight: 420, maxHeight: .infinity)
+                .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 }
