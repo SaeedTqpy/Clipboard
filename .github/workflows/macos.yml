@@ -4,6 +4,11 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
+  # One-shot final test after correcting the tag-limit XCTest assertion.
+  push:
+    branches: [main]
+    paths:
+      - ".ci/validate-bottom-shelf.txt"
 
 concurrency:
   group: clipboard-manual-build
