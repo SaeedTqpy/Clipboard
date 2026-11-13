@@ -35,6 +35,7 @@ No Electron runtime or remote API. No analytics, outbound sync or logging of cli
 - HMAC-SHA256 fingerprints protect against offline dictionary attacks on known short clipboard values; fingerprints still reveal equality between matching copied items.
 - The database preserves creation time and pin state as unencrypted metadata, but preview, body, paths, application names and collection names are sealed.
 - The previous plaintext SQLite FTS5 table is removed in schema v3. Search decrypts records inside the app and caches at most 32 MiB of decoded content. **Large-history performance is not yet verified.**
+- HTML/RTF flavors (capped at 2 MiB) are preserved inside encrypted content records; users can paste with formatting or as plain text. Additional pasteboard flavors are not yet supported.
 - External file references are copied by URL only; actual referenced file bytes are not archived by Clipboard.
 
 ## Legacy migration and storage safety

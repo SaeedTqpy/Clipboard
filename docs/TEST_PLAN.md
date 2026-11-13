@@ -33,7 +33,8 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 
 ## Capture and user interaction
 
-- [ ] Capture Persian and English text, code, links and images from multiple apps.
+- [ ] Capture Persian and English text, code, links, HTML/RTF rich text and images from multiple apps.
+- [ ] Verify formatted Paste preserves rich text and Paste as Plain Text strips formatting.
 - [ ] Copy multiple files in Finder, then paste into Finder with selection intact.
 - [ ] Excluded bundle IDs and known concealed/transient annotations suppress capture.
 - [ ] Toggle image and file capture; paused content is not imported on resume.

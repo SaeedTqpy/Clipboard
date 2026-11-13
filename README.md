@@ -7,7 +7,7 @@ Clipboard is a local-first menu-bar application with a floating horizontal clipb
 ## Implemented
 
 - Global ⌘⇧V shortcut, bottom floating shelf, first-launch onboarding, dismiss-on-outside-click, and menu bar controls.
-- Capture of text, HTTP(S) links, images, one or multiple file URLs, and deduplication.
+- Capture of text, HTTP(S) links, HTML/RTF rich text, images, one or multiple file URLs, and deduplication. Rich-text items can be pasted with formatting or as plain text.
 - Collections, pins, search, kind filters, card actions and an in-memory sequential Paste Stack.
 - Keyboard quick actions ⌘1–9, Copy and Accessibility-gated Paste into the previously active application with focus validation.
 - Monitoring **paused by default**, privacy exclusion by app bundle ID, protected/transient pasteboard type filtering, image/file recording toggles.

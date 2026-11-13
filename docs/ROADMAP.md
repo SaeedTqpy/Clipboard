@@ -3,7 +3,7 @@
 ## Implemented in source (requires a new manual CI validation run)
 
 - SwiftUI + AppKit menu bar utility, floating Liquid Glass-capable shelf, ⌘⇧V.
-- History for text, links, images, multi-file selections; controls for pin, copy, paste, collections, kind filter.
+- History for text, links, encrypted HTML/RTF content, images, multi-file selections; controls for pin, copy, formatted/plain-text paste, collections, kind filter.
 - Paste Stack session queue, ⌘1–9 action shortcuts and destination-app PID check before posting paste events.
 - Opt-in monitoring, source exclusions, recording toggles and retention limits.
 - Keychain-backed AES-256-GCM encrypted history, encrypted PNG assets and keyed HMAC fingerprints.
@@ -28,7 +28,7 @@
 ## Next engineering milestones
 
 - Asynchronous serialized persistence actor and privacy-preserving blind search indexing if performance requires it.
-- Full rich clipboard types: HTML/RTF, multi-flavor preservation, and Paste as Plain Text.
+- Remaining rich clipboard formats: RTFD, PDF, combined multiple-format preservation, advanced rich previews and file promises.
 - Customizable shortcut recorder and keyboard navigation, collection drag/drop, Paste Stack persistence.
 - Streaming encrypted backups for large histories and more robust import conflict control.
 - Localization (English/Persian), icon asset creation, app metadata and release screenshots.
