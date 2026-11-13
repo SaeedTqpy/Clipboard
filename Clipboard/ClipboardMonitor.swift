@@ -78,12 +78,21 @@ final class ClipboardMonitor {
         }
 
         if ClipboardPreferences.captureImages,
-           let image = NSImage(pasteboard: pasteboard),
-           let tiff = image.tiffRepresentation,
-           let bitmap = NSBitmapImageRep(data: tiff),
-           let png = bitmap.representation(using: .png, properties: [:]),
-           png.count <= 12 * 1024 * 1024 {
-            capture(ClipPayload(kind: .image, preview: "Image", imagePNG: png), appName)
+           let type = pasteboard.availableType(from: [.png, .tiff]),
+           let bytes = pasteboard.data(forType: type),
+           bytes.count <= 24 * 1024 * 1024 {
+            // Image decoding/conversion never blocks the main RunLoop.
+            Task { [weak self] in
+                let png = await Task.detached(priority: .utility) {
+                    ClipboardImageNormalizer.pngData(from: bytes, sourceType: type.rawValue)
+                }.value
+                guard let self, !self.isPaused,
+                      self.lastChangeCount == current, let png else { return }
+                self.capture(
+                    ClipPayload(kind: .image, preview: "Image", imagePNG: png),
+                    appName
+                )
+            }
             return
         }
 
