@@ -11,7 +11,6 @@ enum ClipboardPanelPresentation {
 struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
     let presentation: ClipboardPanelPresentation
-    let bottomContentInset: CGFloat
     let onDismiss: () -> Void
     let onPaste: (ClipItem) -> Void
     let onPastePlain: (ClipItem) -> Void
@@ -315,7 +314,7 @@ struct ClipboardPanelView: View {
         }
         .modifier(ClipboardPanelChrome(
             presentation: presentation,
-            bottomContentInset: bottomContentInset
+            bottomContentInset: presentation == .shelf ? model.shelfBottomInset : 0
         ))
         .onExitCommand(perform: onDismiss)
         .onChange(of: presentation == .shelf

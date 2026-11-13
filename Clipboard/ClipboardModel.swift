@@ -11,6 +11,8 @@ final class ClipboardModel: ObservableObject {
     @Published private(set) var hotkeyPreset: ClipboardHotkeyPreset
     @Published var searchText = ""
     @Published var panelPresentationID = 0
+    @Published var managerPresentationID = 0
+    @Published var shelfBottomInset: CGFloat = 0
     @Published var settingsPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
     @Published var selectedKind: ClipKind? = nil { didSet { reload() } }
@@ -60,7 +62,7 @@ final class ClipboardModel: ObservableObject {
     private init() {
         hotkeyPreset = ClipboardHotkeyPreset(
             rawValue: UserDefaults.standard.string(forKey: ClipboardPreferences.hotkeyKey) ?? ""
-        ) ?? .commandShiftV
+        ) ?? .controlShiftV
         captureImages = ClipboardPreferences.captureImages
         captureFiles = ClipboardPreferences.captureFiles
         recognizeImages = ClipboardPreferences.recognizeImages
