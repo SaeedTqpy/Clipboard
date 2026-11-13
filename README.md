@@ -40,7 +40,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 - **macOS 15+**; native Liquid Glass styling is used on **macOS 26+**.
 - **Apple Silicon (arm64)** or **Intel (x86_64)**.
-- **No paid Apple Developer account or local Xcode needed to install** a prebuilt development artifact.
+- **No paid Apple Developer account or local Xcode needed to install** a prebuilt ad-hoc signed development artifact. A Developer ID is required for persistent trusted distribution.
 - **Accessibility permission is needed only for automatic paste**, not for viewing history or copying a clip.
 
 ## Download & install
@@ -50,10 +50,10 @@ The latest verified CI build is [Clipboard macOS Actions run #43463188294](https
 1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
 2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
 3. **Quit all existing Clipboard instances** from the menu bar or Activity Monitor (especially old copies in Downloads). Move the extracted `Clipboard.app` into **Applications**, replacing the earlier version, then launch only the new copy.
-4. This is an **unsigned, unnotarized development build**. If Gatekeeper blocks it, only if you trust the origin, review **System Settings → Privacy & Security → Open Anyway**.
+4. This is an **ad-hoc signed, unnotarized development build**. The signature is tied to this exact build, not a stable Developer ID. If Gatekeeper blocks it, only if you trust the origin, review **System Settings → Privacy & Security → Open Anyway**.
 5. Use *synthetic, non-sensitive* sample content first. Monitoring is **paused by default** on first launch.
 
-There is no official signed installer, notarized DMG, App Store release or automatic updater yet.
+There is no **Developer ID-signed**, notarized DMG, App Store release or automatic updater yet. The CI app is ad-hoc signed specifically so macOS can identify this build during local Accessibility authorization. **TCC permission does not reliably survive upgrades to another ad-hoc build.** See [TCC and signing troubleshooting](docs/TCC_SIGNING.md).
 
 **Need a fresh build?** Open [Clipboard macOS workflow](https://github.com/SaeedTqpy/Clipboard/actions/workflows/macos.yml) and select **Run workflow**. CI is deliberately **manual-only**—commits and PRs do not automatically consume GitHub Actions minutes.
 
@@ -89,7 +89,7 @@ Clipboard is **local-first**. The application has no cloud-sync service, telemet
 - **What encryption does not cover:** the system clipboard, active app memory, screenshots, previous backups, APFS snapshots, and SSD remnants.
 - **Backups:** `.clipbackup` files are independently encrypted with a user-supplied password. Forgetting that password makes the archive unrecoverable. Losing the device's Keychain key can make local history unreadable.
 - **File references:** external file paths are recorded, **not the contents of those files**.
-- **Distribution:** this preview is unsigned and not sandboxed.
+- **Distribution:** this preview is ad-hoc signed per build, not Developer ID-signed or notarized, and is not sandboxed.
 
 **Avoid copying real passwords, private keys, recovery phrases and API secrets while monitoring is enabled.** OCR is opt-in and performed locally using Apple's Vision framework; its recognized text is encrypted in history. See [SECURITY.md](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
 
@@ -149,3 +149,8 @@ On a Mac, **automatic insertion requires two permissions**: Accessibility and pe
 ### Diagnosing a failed paste (no clipboard contents collected)
 
 The Quick Shelf now sends a **session-level Command-V** after checking the remembered destination is foreground. The prior PID-directed event path could fail to invoke application menu shortcuts. On a click, Clipboard records an in-memory diagnostic stage. Reopen the Shelf or visit **Settings → Paste Diagnostics** to see it, and use **Copy Paste Diagnostics** to share the result without disclosing copied content. Interpret the stages: `P1` click received, `P2` clipboard updated, `P3` focus restoration, `P4` Command-V dispatched (not proof of insertion), `E2` missing destination, `E3` missing Accessibility/event-posting permission, `E5` focus timeout, `E6` event creation failure. **Do not use an automated second keypress fallback:** macOS provides no reliable insertion acknowledgment, and blind retries can paste duplicate text.
+
+
+## Accessibility and code identity (important)
+
+Prior GitHub builds disabled signing completely, making `AXIsProcessTrusted()` and `CGPreflightPostEventAccess()` report `false` even though a Clipboard row appeared enabled in System Settings. CI now **ad-hoc signs the complete application after building it**, verifies its designated requirement and publishes `Clipboard-macOS-adhoc.zip`. Follow the **[exact post-install reauthorization steps](docs/TCC_SIGNING.md)** for this new build. Do not re-sign or change the app after granting access: that invalidates its version-specific code identity. The app's **Settings → Paste Diagnostics → Refresh TCC & Signing Status** displays the currently running bundle's code-signing mode, installation location and actual permission responses. This does not guarantee automatic insertion without a real-device Paste test.

@@ -6,8 +6,8 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 ## Setup (without local Xcode)
 
 1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936) from the successful run (57/57 tests; 2026-11-13). Do not trigger another build for this version.
-2. Unzip the outer artifact archive, then the nested Clipboard-macOS-unsigned.zip.
-3. Copy Clipboard.app to /Applications. For unsigned code, approve **your own trusted build** under System Settings → Privacy & Security if macOS blocks it.
+2. Unzip the outer artifact archive, then the nested Clipboard-macOS-adhoc.zip.
+3. Copy Clipboard.app to /Applications. For ad-hoc signed preview, approve **your own trusted build** under System Settings → Privacy & Security if macOS blocks it.
 4. Use the package diagnostic shell script in the repo:
    bash scripts/mac-smoke.sh /Applications/Clipboard.app
 5. Start with **fake non-sensitive test strings only**, for example TEST-CLIP-001.
@@ -57,3 +57,13 @@ and a redacted Console excerpt. Hardware observations require user-provided evid
 7. Verify pressing Copy has no insertion side effect and menu actions do not invoke the main card Paste action.
 8. Revoke Accessibility or Event Posting and confirm `E3` is shown **without closing** the Shelf; then restore permissions and relaunch.
 9. Change to another app before the deferred dispatch and verify the destination guard prevents posting into the wrong app; no blind second attempts permitted.
+
+
+## TCC signing regression gate
+
+- [ ] Check `codesign --verify --strict /Applications/Clipboard.app` succeeds and `codesign -dv --verbose=4 /Applications/Clipboard.app` reports `Signature=adhoc` and `Identifier=dev.clipboard.app`.
+- [ ] Ensure only one Clipboard process is running, and the actual bundle is `/Applications/Clipboard.app`, not an AppTranslocation path.
+- [ ] After replacing an old unsigned/ad-hoc binary, explicitly reset only the Clipboard Accessibility grant with `tccutil reset Accessibility dev.clipboard.app`; reauthorize the **new** binary and quit/relaunch it.
+- [ ] Settings → Paste Diagnostics → Refresh TCC & Signing Status reports `Accessibility (AX): true` and `Event Posting: true` before testing paste into Notes.
+- [ ] Validate that a later ad-hoc build gets a new code identity and that a previous TCC grant is *not* assumed to work across versions.
+- [ ] Never bypass TCC or disable SIP; distribution-quality persistence requires a stable Apple code signing identity.

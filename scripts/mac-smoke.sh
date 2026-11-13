@@ -31,10 +31,12 @@ if command -v lipo >/dev/null 2>&1; then
   fi
 fi
 
-echo "Code signature (unsigned dev builds may fail this check):"
-codesign --verify --deep --strict "$APP" 2>&1 || true
+echo "Code signature (the new ad-hoc preview must pass):"
+codesign --verify --strict --verbose=2 "$APP"
+codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Identifier=|Signature=|CDHash='
+codesign -d -r- "$APP" 2>&1
 echo
-echo "Gatekeeper assessment (unsigned dev builds are expected to be restricted):"
+echo "Gatekeeper assessment (ad-hoc preview is not notarized):"
 spctl --assess --type execute --verbose "$APP" 2>&1 || true
 echo
 echo "NOTICE: This script does not test clipboard capture, Accessibility,"

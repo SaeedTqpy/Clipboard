@@ -164,3 +164,13 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [x] Custom bundled ICNS verified; inner `Clipboard-macOS-unsigned.zip` checksum matches included SHA256SUMS.
 - [x] All production/test source files at main match the validated commit.
 - [ ] User-device acceptance required: after clicking a card, confirm exactly one insertion into Notes/Safari/VS Code; use `Paste Diagnostics` and report stage code if not.
+
+
+## Accessibility identity fix — macOS release validation
+
+- [ ] CI produces an ad-hoc **signed** (not fully unsigned) universal `Clipboard.app` before ZIP.
+- [ ] `codesign --verify --strict` succeeds on the exact app that is subsequently packaged.
+- [ ] `codesign -dv` reports `Identifier=dev.clipboard.app` and `Signature=adhoc`.
+- [ ] `codesign -d -r-` returns a designated requirement.
+- [ ] Automated tests validate signature classification and App Translocation / install path detection.
+- [ ] On a real Mac, reset and regrant Accessibility to the **installed new build**; the app's own audit changes to AX=true and EVENT=true; then validate actual Paste.
