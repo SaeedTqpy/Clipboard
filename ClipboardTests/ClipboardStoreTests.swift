@@ -215,4 +215,106 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: database), original)
     }
 
+    func testOCRTextIsEncryptedSearchableAndRestoredWithImage() throws {
+        let (store, _) = try temporaryStore()
+        let image = Data([0x89, 0x50, 0x4e, 0x47])
+        let hiddenOCR = "BANK-INVOICE-REFERENCE-4821"
+        try store.save(
+            ClipPayload(kind: .image, preview: "Image", imagePNG: image,
+                        recognizedText: hiddenOCR),
+            sourceApp: "Preview"
+        )
+        let match = try XCTUnwrap(store.items(search: "INVOICE").first)
+        XCTAssertEqual(match.recognizedText, hiddenOCR)
+        XCTAssertEqual(try store.imageData(for: match), image)
+        let archive = try store.exportBackup(password: "correct horse battery staple")
+
+        let (restored, _) = try temporaryStore()
+        try restored.importBackup(archive, password: "correct horse battery staple")
+        let found = try XCTUnwrap(restored.items(search: "4821").first)
+        XCTAssertEqual(found.recognizedText, hiddenOCR)
+        XCTAssertEqual(try restored.imageData(for: found), image)
+    }
+
+    func testSnippetSurvivesRetentionAndSupportsEditing() throws {
+        let (store, _) = try temporaryStore()
+        try store.createSnippet(title: "Daily Status", body: "Original daily status")
+        let original = try XCTUnwrap(store.items(search: "Original").first)
+        XCTAssertEqual(original.collection, "Snippets")
+        XCTAssertEqual(original.displayName, "Daily Status")
+        XCTAssertTrue(original.pinned)
+
+        try store.updateClip(
+            id: original.id, title: "Daily Report",
+            text: "Updated daily status", asSnippet: true
+        )
+        let edited = try XCTUnwrap(store.items(search: "Daily Report").first)
+        XCTAssertEqual(edited.id, original.id)
+        XCTAssertEqual(edited.body, "Updated daily status")
+        XCTAssertTrue(edited.pinned)
+        XCTAssertEqual(edited.collection, "Snippets")
+        XCTAssertTrue(try store.items(search: "Original daily status").isEmpty)
+
+        try store.prune(maxUnpinnedImageBytes: 0)
+        XCTAssertNotNil(try store.items(search: "Updated").first)
+
+        let archive = try store.exportBackup(password: "correct horse battery staple")
+        let (restored, _) = try temporaryStore()
+        try restored.importBackup(archive, password: "correct horse battery staple")
+        let result = try XCTUnwrap(restored.items(search: "Report").first)
+        XCTAssertTrue(result.pinned)
+        XCTAssertEqual(result.displayName, "Daily Report")
+        XCTAssertEqual(result.collection, "Snippets")
+    }
+
+    func testEditedFingerprintDeduplicatesCorrectlyAndRejectsCollision() throws {
+        let (store, _) = try temporaryStore()
+        try store.save(
+            ClipPayload(kind: .text, preview: "one", body: "one"), sourceApp: "Notes"
+        )
+        try store.save(
+            ClipPayload(kind: .text, preview: "two", body: "two"), sourceApp: "Notes"
+        )
+        let first = try XCTUnwrap(store.items(search: "one").first)
+        let second = try XCTUnwrap(store.items(search: "two").first)
+        XCTAssertThrowsError(try store.editText(id: first.id, newText: "two"))
+        XCTAssertEqual(try store.items(search: "").count, 2)
+
+        try store.editText(id: first.id, newText: "three")
+        XCTAssertTrue(try store.items(search: "one").isEmpty)
+        XCTAssertEqual(try store.items(search: "three").count, 1)
+        try store.save(
+            ClipPayload(kind: .text, preview: "three", body: "three"), sourceApp: "Safari"
+        )
+        XCTAssertEqual(try store.items(search: "").count, 2)
+        XCTAssertEqual(
+            try XCTUnwrap(store.items(search: "three").first).sourceApp, "Safari"
+        )
+        XCTAssertNotNil(try store.items(search: "two").first)
+        XCTAssertEqual(second.body, "two")
+    }
+
+    func testAppDateFiltersAndRecentClearKeepPinnedClips() throws {
+        let (store, _) = try temporaryStore()
+        try store.save(
+            ClipPayload(kind: .text, preview: "bank work", body: "bank work"),
+            sourceApp: "Xcode"
+        )
+        try store.save(
+            ClipPayload(kind: .text, preview: "browser link", body: "browser link"),
+            sourceApp: "Safari"
+        )
+        XCTAssertEqual(try store.sourceApplicationNames(), ["Safari", "Xcode"])
+        XCTAssertEqual(try store.items(search: "", sourceApp: "Xcode").count, 1)
+        XCTAssertTrue(try store.items(
+            search: "", since: Date().addingTimeInterval(3600)
+        ).isEmpty)
+
+        let bank = try XCTUnwrap(store.items(search: "bank").first)
+        try store.setPinned(true, id: bank.id)
+        try store.deleteRecent(minutes: 5)
+        XCTAssertEqual(try store.items(search: "").count, 1)
+        XCTAssertEqual(try store.items(search: "").first?.id, bank.id)
+    }
+
 }
