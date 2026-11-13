@@ -104,3 +104,11 @@ switching the same toggle without examining these results.
 ## CI verification — 2026-11-13
 
 [GitHub Actions run #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed **62/62 tests**, created the Universal `arm64/x86_64` release, ad-hoc signed the final app and verified its designated requirement. The uploaded `Clipboard-macOS-adhoc` artifact contains an inner ZIP with a working `_CodeSignature/CodeResources` and its matching SHA-256 checksum. No real-device TCC authorization has been asserted.
+
+## macOS PostEvent service — independent of Accessibility
+
+The real-device screenshot after installing the signed build reports **AX=true EVENT=false**. This is a separate `kTCCServicePostEvent` denial, not an Accessibility grant problem. Apple explicitly documents `PostEvent` as a TCC service for *sending keystrokes*. Both `CGPreflightPostEventAccess()` and `CGRequestPostEventAccess()` relate to this service. The Clipboard UI now requests the correct permission independently, and the keyboard paste guard requires PostEvent instead of incorrectly requiring both AXUIElement and PostEvent.
+
+After installing this corrected build: quit every Clipboard process; run `tccutil reset PostEvent dev.clipboard.app` **without sudo**; open the same app from `/Applications`; use `Settings → Paste Diagnostics → Request Event Posting Access`; approve the native prompt; quit and relaunch once more. Then Refresh the diagnostic and confirm `Event Posting (PostEvent): true`. A reset of Accessibility alone will **not** clear a denied PostEvent decision. Do not change SIP or TCC.db.
+
+Sources: [Apple reset documentation](https://developer.apple.com/documentation/xcode/resetting-access-to-protected-resources-in-macos) (PostEvent = sending keystrokes), [Apple CGRequestPostEventAccess](https://developer.apple.com/documentation/coregraphics/cgrequestposteventaccess()), [Apple TCC/PostEvent developer discussion](https://developer.apple.com/forums/thread/842985).

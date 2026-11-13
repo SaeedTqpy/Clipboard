@@ -41,7 +41,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 - **macOS 15+**; native Liquid Glass styling is used on **macOS 26+**.
 - **Apple Silicon (arm64)** or **Intel (x86_64)**.
 - **No paid Apple Developer account or local Xcode needed to install** a prebuilt ad-hoc signed development artifact. A Developer ID is required for persistent trusted distribution.
-- **Accessibility permission is needed only for automatic paste**, not for viewing history or copying a clip.
+- **PostEvent authorization is needed for automatic keyboard Paste**, not for viewing history or copying. AXUIElement Accessibility permission is an independent macOS TCC service and is not inherently required just to inject Command-V.
 
 ## Download & install
 
@@ -63,7 +63,7 @@ There is no **Developer ID-signed**, notarized DMG, App Store release or automat
 2. Press **⌘⇧V** (Command+Shift+V; the **Win + Shift + V** keys on a standard Windows keyboard attached to a Mac) to reveal the bottom Quick Shelf. Click the **menu bar icon** to open the resizable Clipboard Manager. Right-click it for Pause, Settings, and Quit.
 3. **Enable monitoring**. Copy a harmless phrase such as `Clipboard test 001` in Notes.
 4. Search the Quick Shelf and **click a card's header/preview** to copy the item, close the Shelf, restore the previously active app, and paste there. The **Copy** button only copies; **•••** opens more actions without pasting.
-5. To **Paste** into the previously active app, grant Clipboard **Accessibility** permission in system settings. The app verifies the destination process before sending ⌘V, but compatibility depends on the destination app.
+5. To **Paste** into the previously active app, authorize Clipboard's **PostEvent** (synthetic keyboard events) permission via Settings → Paste Diagnostics → Request Event Posting Access. The app verifies the destination process before sending ⌘V, but compatibility depends on the destination app.
 6. Use the card menu to pin, move to a collection, **create or apply colored tags**, add to Paste Stack, delete, or paste supported text as plain text. Click a tag in the horizontal tag rail to filter, or right-click a tag to edit its name/color.
 
 | Shortcut | Behavior |
@@ -77,7 +77,7 @@ There is no **Developer ID-signed**, notarized DMG, App Store release or automat
 | **⌘P** | Pin or unpin selected clip |
 | **⌘Backspace** | Ask to delete selected clip |
 
-The global hotkey can be changed in Settings to several presets. Upgrading from the old default **Ctrl+Shift+V** migrates once to **Command+Shift+V**; unrelated custom presets remain unchanged. If your external keyboard has remapped modifiers, check **System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys** to confirm that Win is mapped to Command. A shortcut already occupied by another app cannot be registered. **Accessibility** is required for automatic paste; without permission, clicking the preview copies and closes the Shelf without sending Cmd+V.
+The global hotkey can be changed in Settings to several presets. Upgrading from the old default **Ctrl+Shift+V** migrates once to **Command+Shift+V**; unrelated custom presets remain unchanged. If your external keyboard has remapped modifiers, check **System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys** to confirm that Win is mapped to Command. A shortcut already occupied by another app cannot be registered. **PostEvent** is required for automatic paste; without permission, clicking the preview copies the item but keeps the Shelf visible with a diagnostic and does not inject Command-V.
 
 ## Privacy and data safety
 
@@ -143,7 +143,7 @@ Clipboard is an independent project and is not affiliated with Apple.
 
 ### If clicking a card copies but does not paste
 
-On a Mac, **automatic insertion requires two permissions**: Accessibility and permission for posting keyboard events. Clipboard now checks both when you click a Quick Shelf card and prompts for access if either is missing. Keep only the newest Clipboard app in **Applications**, quit older copies, then enable Clipboard under **System Settings → Privacy & Security → Accessibility** and restart it. Clicking the preview pastes; clicking **Copy** deliberately does not. If focus cannot be restored to the previous app, Clipboard does not inject keyboard events into a different app; your clip is already copied and can be pasted manually with ⌘V. See [real-device QA](docs/MAC_DEVICE_QA.md).
+On a Mac, **automatic keyboard insertion requires PostEvent permission**. Accessibility (AX) and PostEvent are separate TCC grants; AX=true does not mean PostEvent=true. Clipboard now explicitly checks PostEvent when you click a Quick Shelf card, and requests that service if missing. Keep only the newest Clipboard app in **Applications**, quit older copies, then enable Clipboard under **System Settings → Privacy & Security → Accessibility** and restart it. Clicking the preview pastes; clicking **Copy** deliberately does not. If focus cannot be restored to the previous app, Clipboard does not inject keyboard events into a different app; your clip is already copied and can be pasted manually with ⌘V. See [real-device QA](docs/MAC_DEVICE_QA.md).
 
 
 ### Diagnosing a failed paste (no clipboard contents collected)
@@ -157,3 +157,8 @@ Prior GitHub builds disabled signing completely, making `AXIsProcessTrusted()` a
 
 
 **Latest signing evidence (2026-11-13):** [macOS Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed 62/62 tests and produced `Clipboard-macOS-adhoc` (Intel + Apple Silicon). CI verified `codesign --verify --strict`, `Signature=adhoc`, `Identifier=dev.clipboard.app` and a designated requirement. Real Mac Accessibility reauthorization and actual Notes paste remain to be tested on-device.
+
+
+### AX=true but Event Posting=false — the exact macOS fix
+
+Apple explicitly lists **PostEvent** as its own TCC service for sending keystrokes ([Apple's TCC reset documentation](https://developer.apple.com/documentation/xcode/resetting-access-to-protected-resources-in-macos)), separate from Accessibility. When the app diagnostic shows `E3P · AX=true EVENT=false`, stop resetting Accessibility: it is **already granted**. Quit Clipboard completely, run `tccutil reset PostEvent dev.clipboard.app` (no sudo), reopen the exact build in Applications, click **Settings → Paste Diagnostics → Request Event Posting Access**, approve any macOS prompt, quit and relaunch again, then use **Refresh TCC & Signing Status**. Expected: `Event Posting (PostEvent): true`. If it remains false, inspect the running bundle's identity via `scripts/inspect-permission-identity.sh`. Do not disable SIP or edit TCC.db. The macOS API may report the old result until relaunch after a grant.

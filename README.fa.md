@@ -144,3 +144,14 @@ Clipboard یک پروژهٔ مستقل است و وابستگی رسمی به Ap
 
 
 **آخرین Build امضاشده (۱۳ نوامبر ۲۰۲۶):** [GitHub Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781)، تمام **۶۲ تست** موفق شدند. نسخه Universal در Artifact با نام `Clipboard-macOS-adhoc` است. صحت امضای Ad-hoc و Designated Requirement در CI بررسی شد؛ مجوز مؤثر روی مک و Paste واقعی همچنان باید روی دستگاه تست شوند.
+
+
+### رفع دقیق خطای AX=true / EVENT=false
+
+در macOS مجوز **PostEvent** (ارسال کلید) از **Accessibility** جداست. وقتی Diagnostics مقدار `AX=true EVENT=false` نشان می‌دهد، دیگر Accessibility را Reset نکنید. برنامه را **کاملاً Quit** کنید، سپس در Terminal بزنید:
+
+```bash
+tccutil reset PostEvent dev.clipboard.app
+```
+
+برنامه نصب‌شده در `/Applications/Clipboard.app` را دوباره باز کنید. در **Settings → Paste Diagnostics** دکمه **Request Event Posting Access** را بزنید، درخواست macOS را تأیید کنید، برنامه را کاملاً ببندید و مجدداً اجرا کنید. با **Refresh TCC & Signing Status** بررسی کنید که `Event Posting (PostEvent): true` باشد. مجوز AX دیگر شرط ارسال کلید در مسیر Paste نیست. این دستور فقط PostEvent برنامه Clipboard را Reset می‌کند؛ بدون `sudo` اجرا کنید و مجوزهای همه برنامه‌ها را پاک نکنید.

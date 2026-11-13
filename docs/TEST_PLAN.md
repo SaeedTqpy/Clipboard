@@ -178,3 +178,13 @@ A successful compilation is **not** a production-release approval. Complete encr
 ### Verified TCC-identity packaging milestone
 
 [GitHub Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781): **62/62 tests passed** and `Clipboard-macOS-adhoc` published with a verified `dev.clipboard.app` ad-hoc signature and designated requirement. **Pending:** reinstall/reauthorization and real paste on user's Mac.
+
+## Independent PostEvent permission regression
+
+- [ ] Apple-documented `PostEvent` denial is diagnosed independently from AXUIElement trust.
+- [ ] `AX=true/PostEvent=false` shows `E3P` and requests the actual PostEvent service, without resetting AX.
+- [ ] `AX=false/PostEvent=true` is allowed through the keyboard Paste permission gate (no AXUIElement APIs are used for the simulated shortcut).
+- [ ] Settings exposes independent buttons for Request Event Posting Access and Request Accessibility Access.
+- [ ] UI provides only `tccutil reset PostEvent dev.clipboard.app` as the scoped reset for this denial.
+- [ ] After permission grant, fully quit/relaunch before relying on fresh preflight results.
+- [ ] Test keyboard insertion exactly once in Notes after `PostEvent=true` on the user's device.

@@ -67,3 +67,11 @@ and a redacted Console excerpt. Hardware observations require user-provided evid
 - [ ] Settings → Paste Diagnostics → Refresh TCC & Signing Status reports `Accessibility (AX): true` and `Event Posting: true` before testing paste into Notes.
 - [ ] Validate that a later ad-hoc build gets a new code identity and that a previous TCC grant is *not* assumed to work across versions.
 - [ ] Never bypass TCC or disable SIP; distribution-quality persistence requires a stable Apple code signing identity.
+
+
+## PostEvent-only denial — acceptance test
+
+- [ ] With AX=true and PostEvent=false, the app shows `E3P`, does not synthesize Command-V, and keeps the Shelf visible.
+- [ ] Quit the app, run `tccutil reset PostEvent dev.clipboard.app` (no sudo), reopen it from Applications, choose Settings → Paste Diagnostics → Request Event Posting Access, approve, quit and reopen; the permission audit must show PostEvent=true.
+- [ ] With AX=false and PostEvent=true, pasting through the system keyboard-event API is permitted without requesting Accessibility.
+- [ ] With both false, only the permission required for keyboard injection is requested during Paste; other features can request AX explicitly.
