@@ -41,6 +41,7 @@ struct ClipItem: Identifiable, Equatable {
     var richType: String? = nil
     var displayName: String? = nil
     var recognizedText: String? = nil
+    var tags: [ClipTag] = []
 }
 
 struct ClipPayload {

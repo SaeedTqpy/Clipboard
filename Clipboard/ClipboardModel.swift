@@ -19,6 +19,8 @@ final class ClipboardModel: ObservableObject {
     @Published var historyPeriod: ClipboardHistoryPeriod = .all { didSet { reload() } }
     @Published private(set) var sourceApps: [String] = []
     @Published private(set) var collections: [String] = []
+    @Published private(set) var tags: [ClipTag] = []
+    @Published var selectedTagID: String? = nil { didSet { reload() } }
     @Published private(set) var pasteStack: [ClipItem] = []
     @Published private(set) var isPaused: Bool
     @Published var message: String?
@@ -104,7 +106,8 @@ final class ClipboardModel: ObservableObject {
                 collection: selectedCollection,
                 kind: selectedKind,
                 sourceApp: selectedSourceApp,
-                since: historyPeriod.startDate
+                since: historyPeriod.startDate,
+                tagID: selectedTagID
             )
             if let selectedClipID, !clips.contains(where: { $0.id == selectedClipID }) {
                 self.selectedClipID = clips.first?.id
@@ -112,6 +115,10 @@ final class ClipboardModel: ObservableObject {
                 self.selectedClipID = clips.first?.id
             }
             collections = try store.collectionNames()
+            tags = try store.tagCatalog()
+            if let selectedTagID, !tags.contains(where: { $0.id == selectedTagID }) {
+                self.selectedTagID = nil
+            }
             sourceApps = try store.sourceApplicationNames()
             if let selectedSourceApp, !sourceApps.contains(selectedSourceApp) {
                 self.selectedSourceApp = nil
@@ -218,6 +225,27 @@ final class ClipboardModel: ObservableObject {
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    func attachTag(_ tag: ClipTag, to item: ClipItem) {
+        do {
+            try store?.addTag(tag, to: item.id)
+            reload()
+        } catch { message = error.localizedDescription }
+    }
+
+    func detachTag(_ tagID: String, from item: ClipItem) {
+        do {
+            try store?.removeTag(tagID, from: item.id)
+            reload()
+        } catch { message = error.localizedDescription }
+    }
+
+    func editTag(_ tag: ClipTag, name: String, color: ClipTagColor) {
+        do {
+            try store?.editTag(tag.id, name: name, color: color)
+            reload()
+        } catch { message = error.localizedDescription }
     }
 
     func move(_ item: ClipItem, toCollection name: String?) {

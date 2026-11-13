@@ -31,6 +31,8 @@ private struct SealedClipContent: Codable {
     var richType: String? = nil
     var displayName: String? = nil
     var recognizedText: String? = nil
+    // Optional for backward-compatible decoding of existing encrypted rows.
+    var tags: [ClipTag]? = nil
 }
 
 private struct ClipboardBackupDocument: Codable {
@@ -280,7 +282,8 @@ final class ClipboardStore {
         sourceApp: String,
         createdAt: Double,
         importedPin: Bool = false,
-        importedCollection: String? = nil
+        importedCollection: String? = nil,
+        importedTags: [ClipTag] = []
     ) throws {
         guard payload.preview.utf8.count <= 2 * 1024 * 1024,
               (payload.body?.utf8.count ?? 0) <= 2 * 1024 * 1024,
@@ -298,6 +301,10 @@ final class ClipboardStore {
         } else {
             imageFilename = nil
         }
+        var combinedTags = existing?.record.tags ?? []
+        for tag in importedTags where !combinedTags.contains(where: { $0.id == tag.id }) {
+            if combinedTags.count < 5 { combinedTags.append(tag) }
+        }
         let record = SealedClipContent(
             kind: payload.kind.rawValue,
             preview: payload.preview,
@@ -309,7 +316,8 @@ final class ClipboardStore {
             richData: payload.richData,
             richType: payload.richType,
             displayName: existing?.record.displayName,
-            recognizedText: payload.recognizedText ?? existing?.record.recognizedText
+            recognizedText: payload.recognizedText ?? existing?.record.recognizedText,
+            tags: combinedTags
         )
         let sealed = try seal(record, id: id)
         if let existing {
@@ -399,7 +407,8 @@ final class ClipboardStore {
                 richData: decoded.richData,
                 richType: decoded.richType,
                 displayName: decoded.displayName,
-                recognizedText: decoded.recognizedText
+                recognizedText: decoded.recognizedText,
+                tags: decoded.tags ?? []
             ),
             decoded
         )
@@ -424,6 +433,7 @@ final class ClipboardStore {
                         + (value.item.richData?.count ?? 0)
                         + (value.item.recognizedText?.utf8.count ?? 0)
                         + (value.item.displayName?.utf8.count ?? 0)
+                        + value.item.tags.reduce(0) { $0 + $1.name.utf8.count + 60 }
                 }
                 if footprint <= 32 * 1024 * 1024 {
                     decryptedCache = rows
@@ -438,7 +448,8 @@ final class ClipboardStore {
     func items(
         search: String, pinnedOnly: Bool = false,
         collection: String? = nil, kind: ClipKind? = nil,
-        sourceApp: String? = nil, since: Date? = nil
+        sourceApp: String? = nil, since: Date? = nil,
+        tagID: String? = nil
     ) throws -> [ClipItem] {
         // Deliberately avoid a plaintext FTS index. Search occurs over decrypted
         // in-memory records, which must be profiled on large clip histories.
@@ -450,17 +461,80 @@ final class ClipboardStore {
             if let collection, item.collection != collection { continue }
             if let kind, item.kind != kind { continue }
             if let sourceApp, item.sourceApp != sourceApp { continue }
+            if let tagID, !item.tags.contains(where: { $0.id == tagID }) { continue }
             if let since, item.createdAt < since { continue }
             if !terms.allSatisfy({
                 item.preview.localizedStandardContains($0)
                 || (item.displayName?.localizedStandardContains($0) ?? false)
                 || (item.recognizedText?.localizedStandardContains($0) ?? false)
+                || item.tags.contains(where: { $0.name.localizedStandardContains($0) })
                 || (item.body?.localizedStandardContains($0) ?? false)
             }) { continue }
             result.append(item)
             if result.count >= 500 { break }
         }
         return result
+    }
+
+    /// The tag catalog is derived from sealed records. No plaintext tag names.
+    func tagCatalog() throws -> [ClipTag] {
+        var catalog: [String: ClipTag] = [:]
+        for item in try allRows().map(.item) {
+            for tag in item.tags where catalog[tag.id] == nil {
+                catalog[tag.id] = tag
+            }
+        }
+        return catalog.values.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func addTag(_ requested: ClipTag, to clipID: String) throws {
+        guard requested.isValid else {
+            throw ClipboardStoreError.database("Tag name must have 1–28 characters.")
+        }
+        // Canonicalize reused tags to the existing color/name.
+        let tag = try tagCatalog().first(where: { $0.id == requested.id }) ?? requested
+        try updateRecord(id: clipID) { record in
+            var tags = record.tags ?? []
+            guard !tags.contains(where: { $0.id == tag.id }), tags.count < 5 else { return }
+            tags.append(tag)
+            record.tags = tags
+        }
+    }
+
+    func removeTag(_ tagID: String, from clipID: String) throws {
+        try updateRecord(id: clipID) { record in
+            record.tags = (record.tags ?? []).filter { $0.id != tagID }
+        }
+    }
+
+    func editTag(_ id: String, name: String, color: ClipTagColor) throws {
+        let replacement = ClipTag(id: id,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            color: color)
+        guard replacement.isValid else {
+            throw ClipboardStoreError.database("Tag name must have 1–28 characters.")
+        }
+        let affected = try allRows()
+            .filter { row in row.item.tags.contains(where: { $0.id == id }) }
+            .map { $0.item.id }
+        guard !affected.isEmpty else { return }
+        try execute("BEGIN IMMEDIATE;")
+        do {
+            for clipID in affected {
+                try updateRecord(id: clipID) { record in
+                    record.tags = (record.tags ?? []).map { tag in
+                        tag.id == id ? replacement : tag
+                    }
+                }
+            }
+            try execute("COMMIT;")
+        } catch {
+            try? execute("ROLLBACK;")
+            decryptedCache = nil
+            throw error
+        }
     }
 
     func sourceApplicationNames() throws -> [String] {
@@ -781,6 +855,7 @@ final class ClipboardStore {
                 + (row.item.richData?.count ?? 0)
                 + (row.item.displayName?.utf8.count ?? 0)
                 + (row.item.recognizedText?.utf8.count ?? 0)
+                + row.item.tags.reduce(0) { $0 + $1.name.utf8.count + 60 }
                 + (image?.count ?? 0)
             guard bytes <= 75 * 1024 * 1024 else { throw ClipboardBackupError.tooLarge }
             entries.append(ClipboardBackupDocument.Entry(
@@ -807,6 +882,7 @@ final class ClipboardStore {
                 + (entry.content.richData?.count ?? 0)
                 + (entry.content.displayName?.utf8.count ?? 0)
                 + (entry.content.recognizedText?.utf8.count ?? 0)
+                + (entry.content.tags ?? []).reduce(0) { $0 + $1.name.utf8.count + 60 }
                 + (entry.imageData?.count ?? 0)
             guard total <= 75 * 1024 * 1024,
                   entry.content.preview.utf8.count <= 2 * 1024 * 1024,
@@ -817,6 +893,9 @@ final class ClipboardStore {
                   (entry.content.displayName?.count ?? 0) <= 120,
                   (entry.content.recognizedText?.utf8.count ?? 0) <= 100_000,
                   (entry.content.collection?.count ?? 0) <= 60,
+                  (entry.content.tags ?? []).count <= 5,
+                  (entry.content.tags ?? []).allSatisfy(.isValid),
+                  Set((entry.content.tags ?? []).map(.id)).count == (entry.content.tags ?? []).count,
                   ClipKind(rawValue: entry.content.kind) != nil,
                   (entry.content.kind != ClipKind.image.rawValue || entry.imageData != nil),
                   (entry.content.kind != ClipKind.richText.rawValue ||
@@ -844,7 +923,8 @@ final class ClipboardStore {
                     sourceApp: entry.content.sourceApp,
                     createdAt: entry.createdAt,
                     importedPin: entry.pinned,
-                    importedCollection: entry.content.collection
+                    importedCollection: entry.content.collection,
+                    importedTags: entry.content.tags ?? []
                 )
                 // Preserve human-readable titles as encrypted metadata on restore.
                 if let title = entry.content.displayName {
