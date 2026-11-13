@@ -4,11 +4,6 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  # Single scoped proof of macOS icon creation and bundle checks.
-  push:
-    branches: [main]
-    paths:
-      - ".ci/validate-macos-icon.txt"
 
 concurrency:
   group: clipboard-manual-build
