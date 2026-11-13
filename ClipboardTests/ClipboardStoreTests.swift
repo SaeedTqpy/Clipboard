@@ -380,9 +380,16 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertThrowsError(
             try store.addTag(ClipTag(name: " ", color: .green), to: item.id)
         )
-        for number in 1...7 {
+        for number in 1...5 {
             try store.addTag(
                 ClipTag(name: "Tag \(number)", color: .amber), to: item.id
+            )
+        }
+        for number in 6...7 {
+            XCTAssertThrowsError(
+                try store.addTag(
+                    ClipTag(name: "Tag \(number)", color: .amber), to: item.id
+                )
             )
         }
         XCTAssertEqual(try store.items(search: "").first?.tags.count, 5)
