@@ -4,6 +4,11 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
+  # One-shot combined macOS validation for hotkey and one-click-paste batch.
+  push:
+    branches: [main]
+    paths:
+      - ".ci/verify-hotkey-and-card-paste.txt"
 
 concurrency:
   group: clipboard-manual-build
