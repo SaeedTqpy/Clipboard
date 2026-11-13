@@ -4,6 +4,11 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
+  # Single scoped session-paste and in-app diagnostics validation.
+  push:
+    branches: [main]
+    paths:
+      - ".ci/verify-session-paste.txt"
 
 concurrency:
   group: clipboard-manual-build
