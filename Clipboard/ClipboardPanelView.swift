@@ -18,6 +18,10 @@ enum ClipboardPanelPresentation: Equatable {
         case .management: return .selectForManagement
         }
     }
+
+    /// Technical diagnostics and long-form errors belong in Manager / Settings,
+    /// never in the transient Quick Shelf's bottom edge.
+    var displaysBottomStatus: Bool { self == .management }
 }
 
 struct ClipboardPanelView: View {
@@ -57,38 +61,38 @@ struct ClipboardPanelView: View {
                 tagRail
             }
             clipsCarousel
-            if presentation == .management || model.shelfScreenHeight >= 580 {
+            if presentation.displaysBottomStatus {
                 footer
-            }
-            if model.pasteDiagnostic != "P0 · No paste attempted since launch." {
-                HStack(spacing: 8) {
-                    Image(systemName: "waveform.path.ecg")
-                        .foregroundStyle(.mint)
-                    Text(model.pasteDiagnostic)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Button("Copy diagnostics") { model.copyPasteDiagnostic() }
-                        .buttonStyle(.link)
+                if model.pasteDiagnostic != "P0 · No paste attempted since launch." {
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform.path.ecg")
+                            .foregroundStyle(.mint)
+                        Text(model.pasteDiagnostic)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Button("Copy diagnostics") { model.copyPasteDiagnostic() }
+                            .buttonStyle(.link)
+                    }
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
                 }
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 5)
-            }
-            if let message = model.message {
-                HStack(spacing: 9) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(.orange)
-                    Text(message)
-                        .lineLimit(2)
-                        .font(.system(size: 11))
-                    Spacer(minLength: 0)
-                    Button("Dismiss") { model.message = nil }
-                        .buttonStyle(.link)
+                if let message = model.message {
+                    HStack(spacing: 9) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(.orange)
+                        Text(message)
+                            .lineLimit(2)
+                            .font(.system(size: 11))
+                        Spacer(minLength: 0)
+                        Button("Dismiss") { model.message = nil }
+                            .buttonStyle(.link)
+                    }
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 10)
+                    .background(.orange.opacity(0.10),
+                                in: RoundedRectangle(cornerRadius: 13))
                 }
-                .padding(.horizontal, 13)
-                .padding(.vertical, 10)
-                .background(.orange.opacity(0.10),
-                            in: RoundedRectangle(cornerRadius: 13))
             }
         }
         .modifier(ClipboardPanelChrome(presentation: presentation))
@@ -226,6 +230,33 @@ struct ClipboardPanelView: View {
 
     private var headerActions: some View {
         HStack(spacing: 8) {
+            if presentation == .shelf, !model.pasteStack.isEmpty {
+                Menu {
+                    Button("Paste Next (\(model.pasteStack.count))", action: onPasteNext)
+                    Button("Clear Paste Stack") { model.clearPasteStack() }
+                } label: {
+                    Image(systemName: "square.stack.3d.up")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 39, height: 39)
+                }
+                .menuStyle(.borderlessButton)
+                .liquidToolbar()
+                .help("Paste Stack")
+            }
+
+            if presentation == .shelf, let message = model.message {
+                Button { showingSettings = true } label: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.orange)
+                        .frame(width: 39, height: 39)
+                }
+                .buttonStyle(.plain)
+                .liquidToolbar()
+                .help(message)
+                .accessibilityLabel("Paste needs attention. Open Settings to diagnose")
+            }
+
             Button { creatingSnippet = true } label: {
                 Image(systemName: "plus.square.on.square")
                     .font(.system(size: 14, weight: .semibold))

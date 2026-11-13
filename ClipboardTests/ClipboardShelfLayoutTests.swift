@@ -60,6 +60,8 @@ final class ClipboardShelfLayoutTests: XCTestCase {
             in: screen, visibleFrame: safe, density: .compact
         )
         XCTAssertGreaterThan(comfortable.height, compact.height)
+        XCTAssertLessThan(comfortable.height, 544)
+        XCTAssertLessThan(compact.height, 480)
         XCTAssertEqual(comfortable.height, ClipboardShelfDensity.comfortable.preferredShelfHeight)
         XCTAssertEqual(compact.height, ClipboardShelfDensity.compact.preferredShelfHeight)
         XCTAssertGreaterThan(ClipboardShelfDensity.comfortable.cardWidth, 300)

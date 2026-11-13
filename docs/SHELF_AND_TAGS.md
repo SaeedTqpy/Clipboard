@@ -9,6 +9,12 @@ Two purpose-built surfaces exist, and they must remain separate.
   the previously active app, and send only one authorized Command-V.
 - **Clipboard Manager:** left-click on the Menu Bar icon. A separate, normal
   resizable AppKit window. Clicking a preview here only selects the clip.
+- **Clean Quick Shelf:** the bottom shortcut hints, clip count, technical paste
+  diagnostics, and orange error banners are not rendered in the shelf.
+  Diagnostics and detailed errors remain available in Manager and Settings →
+  Paste Diagnostics. When an operation needs attention, a small warning icon
+  in the top toolbar opens Settings. Paste Stack controls are retained in a
+  top-toolbar menu when the stack has entries.
 - The Shelf is **physically attached to the lower screen edge** and uses a
   transient `NSWindow.Level.popUpMenu` so it renders above the Dock.
   The Dock is visually **covered only while the Shelf is open**, not killed,
@@ -45,14 +51,14 @@ Two purpose-built surfaces exist, and they must remain separate.
 | Card height | 283 pt | 243 pt |
 | Preview target height | 120 pt | 83 pt |
 | Card gap | 20 pt | 14 pt |
-| Shelf base height | 544 pt | 480 pt |
+| Shelf base height | 500 pt | 460 pt |
 
 The bottom Dock size does not change the Shelf height. Height is clamped to
 the physical display minus the top menu-bar safe area. Displays shorter than
 680 pt force
 Compact even when the user previously chose Comfortable. Displays below
-660 pt omit the optional tag rail and those below 580 pt omit the footer,
-preserving a functional main toolbar and preview instead of clipping them.
+660 pt omit the optional tag rail; the footer is always absent from the shelf.
+This preserves room for the toolbar and clip previews.
 Search width also adapts below 850 pt.
 
 Density selection is persisted under
@@ -93,7 +99,9 @@ state and accessible button labels. Horizontal virtualization remains a
   Manager. No double window.
 - [ ] Clicking a card preview in Shelf pastes once and dismisses. Copy and
   More never dispatch accidental paste. Manager card click selects only.
-- [ ] Accessibility and PostEvent failures display actionable diagnostics.
+- [ ] Accessibility and PostEvent failures remain actionable via the top
+  attention indicator and Settings → Paste Diagnostics without an intrusive
+  bottom banner in the shelf.
 - [ ] Keyboard selection and Enter, Cmd+1…9, Escape, search focus still work.
 - [ ] NSWorkspace Reduce Motion removes translations; VoiceOver controls have
   meaningful names.

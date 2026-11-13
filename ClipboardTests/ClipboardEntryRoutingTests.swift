@@ -15,4 +15,9 @@ final class ClipboardEntryRoutingTests: XCTestCase {
             .management
         )
     }
+
+    func testQuickShelfNeverShowsBottomStatus() {
+        XCTAssertFalse(ClipboardPanelPresentation.shelf.displaysBottomStatus)
+        XCTAssertTrue(ClipboardPanelPresentation.management.displaysBottomStatus)
+    }
 }

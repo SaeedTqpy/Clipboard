@@ -12,7 +12,7 @@ enum ClipboardShelfDensity: String, CaseIterable, Identifiable {
     var cardHeight: CGFloat { self == .comfortable ? 283 : 243 }
     var previewHeight: CGFloat { self == .comfortable ? 120 : 83 }
     var cardSpacing: CGFloat { self == .comfortable ? 20 : 14 }
-    var preferredShelfHeight: CGFloat { self == .comfortable ? 544 : 480 }
+    var preferredShelfHeight: CGFloat { self == .comfortable ? 500 : 460 }
 
     /// Respect a user's preferred density except on a small display, where
     /// Comfortable cards would leave too little room for search and controls.
