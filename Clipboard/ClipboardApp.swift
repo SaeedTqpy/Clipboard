@@ -358,6 +358,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             density: savedDensity
         )
         model.shelfScreenHeight = screen.frame.height
+        model.shelfScreenWidth = screen.frame.width
         model.shelfBottomInset = ClipboardShelfLayout.bottomContentInset(
             screenFrame: screen.frame, visibleFrame: screen.visibleFrame
         )
@@ -407,6 +408,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             density: density
         )
         model.shelfScreenHeight = screen.frame.height
+        model.shelfScreenWidth = screen.frame.width
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             panel.setFrame(frame, display: true)
         } else {

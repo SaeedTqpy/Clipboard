@@ -16,6 +16,7 @@ final class ClipboardModel: ObservableObject {
     @Published var managerPresentationID = 0
     @Published var shelfBottomInset: CGFloat = 0
     @Published var shelfScreenHeight: CGFloat = 900
+    @Published var shelfScreenWidth: CGFloat = 1440
     @Published var settingsPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
     @Published var selectedKind: ClipKind? = nil { didSet { reload() } }

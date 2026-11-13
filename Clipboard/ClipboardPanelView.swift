@@ -53,9 +53,13 @@ struct ClipboardPanelView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
             filterRail
-            tagRail
+            if presentation == .management || model.shelfScreenHeight >= 660 {
+                tagRail
+            }
             clipsCarousel
-            footer
+            if presentation == .management || model.shelfScreenHeight >= 580 {
+                footer
+            }
             if model.pasteDiagnostic != "P0 · No paste attempted since launch." {
                 HStack(spacing: 8) {
                     Image(systemName: "waveform.path.ecg")
@@ -201,7 +205,12 @@ struct ClipboardPanelView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .frame(width: presentation == .shelf ? 320 : 265, height: 40)
+            .frame(
+                width: presentation == .shelf
+                    ? (model.shelfScreenWidth < 850 ? 196 : 320)
+                    : 265,
+                height: 40
+            )
             .liquidToolbar()
             headerActionButtons
         }

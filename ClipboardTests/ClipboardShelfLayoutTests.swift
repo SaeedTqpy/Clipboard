@@ -78,4 +78,29 @@ final class ClipboardShelfLayoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(frame.maxY, screen.maxY)
         XCTAssertGreaterThanOrEqual(frame.height, 260)
     }
+    func testLargeDockIsCompensatedInsideShelfNotAsOuterGap() {
+        let full = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        let safe = CGRect(x: 0, y: 96, width: 1512, height: 845)
+        let frame = ClipboardShelfLayout.frame(
+            in: full, visibleFrame: safe, density: .comfortable
+        )
+        XCTAssertEqual(frame.minY, 0)
+        XCTAssertEqual(frame.width, 1512)
+        XCTAssertEqual(ClipboardShelfLayout.bottomContentInset(
+            screenFrame: full, visibleFrame: safe
+        ), 96)
+        XCTAssertEqual(
+            frame.height,
+            ClipboardShelfDensity.comfortable.preferredShelfHeight + 96
+        )
+    }
+
+    func testDockOnRightHasNoBottomInset() {
+        let full = CGRect(x: 0, y: 0, width: 1600, height: 900)
+        let safe = CGRect(x: 0, y: 0, width: 1520, height: 865)
+        XCTAssertEqual(ClipboardShelfLayout.bottomContentInset(
+            screenFrame: full, visibleFrame: safe
+        ), 0)
+    }
+
 }

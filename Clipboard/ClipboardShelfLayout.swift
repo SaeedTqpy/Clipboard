@@ -14,10 +14,11 @@ enum ClipboardShelfLayout {
         let effectiveDensity = ClipboardShelfDensity.effective(
             preferred: density, screenHeight: screenFrame.height
         )
-        let height = max(
-            280,
-            min(screenFrame.height - 44,
-                effectiveDensity.preferredShelfHeight + safeBottom)
+        let maxAvailable = max(200, screenFrame.height - 44)
+        let height = min(
+            screenFrame.height,
+            max(200, min(maxAvailable,
+                         effectiveDensity.preferredShelfHeight + safeBottom))
         )
         return CGRect(
             x: screenFrame.minX,
