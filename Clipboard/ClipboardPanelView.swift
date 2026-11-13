@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import ApplicationServices
+import UniformTypeIdentifiers
 
 struct ClipboardPanelView: View {
     @ObservedObject var model: ClipboardModel
@@ -403,6 +404,18 @@ struct ClipboardSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("Encrypted Backups") {
+                Text("Export a portable backup protected with a password. No unencrypted export file is written to disk.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    Button("Export Encrypted Backup…") { exportBackup() }
+                    Button("Restore Backup…") { importBackup() }
+                }
+                Text("Keep the password safe. Without it, a backup cannot be restored. Restoring merges clips with the existing history.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Shortcuts") {
                 Text("⌘⇧V opens the shelf. ⌘1 through ⌘9 paste a visible clip.")
                 Text("Automatic paste requires macOS Accessibility permission; copying does not.")
@@ -417,6 +430,76 @@ struct ClipboardSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 615, height: 560)
+        .frame(width: 615, height: 600)
+    }
+
+    private func exportBackup() {
+        guard let password = ClipboardPasswordDialog.ask(confirm: true) else { return }
+        let panel = NSSavePanel()
+        panel.title = "Save encrypted Clipboard backup"
+        panel.nameFieldStringValue = "Clipboard-\(Date().formatted(date: .numeric, time: .omitted)).clipbackup"
+        panel.allowedContentTypes = [UTType(filenameExtension: "clipbackup") ?? .data]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        model.exportEncryptedBackup(password: password, to: url)
+    }
+
+    private func importBackup() {
+        let panel = NSOpenPanel()
+        panel.title = "Open encrypted Clipboard backup"
+        panel.allowedContentTypes = [UTType(filenameExtension: "clipbackup") ?? .data]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let password = ClipboardPasswordDialog.ask(confirm: false) else { return }
+
+        let confirm = NSAlert()
+        confirm.messageText = "Restore encrypted backup?"
+        confirm.informativeText = "This will merge backup entries with your current clipboard history. Pinned entries will be preserved."
+        confirm.alertStyle = .informational
+        confirm.addButton(withTitle: "Restore")
+        confirm.addButton(withTitle: "Cancel")
+        guard confirm.runModal() == .alertFirstButtonReturn else { return }
+        model.importEncryptedBackup(from: url, password: password)
+    }
+}
+
+/// System secure fields: passwords are never put in app settings or logs.
+private enum ClipboardPasswordDialog {
+    static func ask(confirm: Bool) -> String? {
+        let alert = NSAlert()
+        alert.messageText = confirm ? "Choose a backup password" : "Enter backup password"
+        alert.informativeText = confirm
+            ? "Use at least 12 characters. This password is necessary to restore on another Mac."
+            : "Enter the password that was used when this backup was exported."
+        let first = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 350, height: 24))
+        first.placeholderString = "Backup password"
+        let stack = NSStackView(views: [first])
+        stack.orientation = .vertical
+        stack.spacing = 8
+        stack.frame = NSRect(x: 0, y: 0, width: 350, height: confirm ? 56 : 24)
+
+        var second: NSSecureTextField?
+        if confirm {
+            let confirmation = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 350, height: 24))
+            confirmation.placeholderString = "Confirm backup password"
+            stack.addArrangedSubview(confirmation)
+            second = confirmation
+        }
+        alert.accessoryView = stack
+        alert.addButton(withTitle: confirm ? "Continue" : "Unlock")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let password = first.stringValue
+        guard password.count >= (confirm ? 12 : 1),
+              !password.contains("\0"),
+              second == nil || second?.stringValue == password else {
+            let warning = NSAlert()
+            warning.messageText = "Invalid backup password"
+            warning.informativeText = confirm
+                ? "Use at least 12 characters and enter the same password twice."
+                : "Enter the password associated with your backup."
+            warning.runModal()
+            return nil
+        }
+        return password
     }
 }
