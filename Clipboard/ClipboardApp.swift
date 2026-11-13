@@ -67,6 +67,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private var hotkey: ClipboardGlobalHotkey?
     private var outsideClickMonitor: Any?
     private var previousApp: NSRunningApplication?
+    private var panelTransitionID = 0
+    private var isClosingShelf = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -131,7 +133,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     }
 
     private func buildPanel() {
-        let rect = NSRect(x: 0, y: 0, width: 1050, height: 445)
+        let rect = NSRect(x: 0, y: 0, width: 1100, height: 360)
         let panel = ClipboardFloatingPanel(
             contentRect: rect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -144,6 +146,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true
+        panel.animationBehavior = .none
+        panel.isMovableByWindowBackground = false
         panel.navigationHandler = { [weak self] action in
             self?.handleNavigation(action) ?? false
         }
@@ -166,7 +170,7 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
 
     private func togglePanel() {
         guard let panel else { return }
-        if panel.isVisible { hidePanel() } else { showPanel() }
+        if panel.isVisible && !isClosingShelf { hidePanel() } else { showPanel() }
     }
 
     private func showPanel() {
@@ -176,21 +180,41 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             previousApp = foreground
         }
         model.searchText = ""
-        if let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
-            ?? NSScreen.main ?? NSScreen.screens.first {
-            let available = screen.visibleFrame
-            let width = min(1050, max(520, available.width - 24))
-            let x = available.midX - width / 2
-            panel.setFrame(NSRect(
-                x: x, y: available.minY + 24,
-                width: width, height: 445
-            ), display: true)
+        guard let screen = NSScreen.screens.first(where: {
+            $0.frame.contains(NSEvent.mouseLocation)
+        }) ?? NSScreen.main ?? NSScreen.screens.first else { return }
+
+        // A screen-width shelf anchored immediately above the Dock, including
+        // on secondary displays with different screen origins.
+        let target = ClipboardShelfLayout.frame(in: screen.visibleFrame)
+        panelTransitionID &+= 1
+        isClosingShelf = false
+        let reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
+        if reducedMotion {
+            panel.setFrame(target, display: true)
+            panel.alphaValue = 1
+            panel.orderFrontRegardless()
+        } else {
+            let start = ClipboardShelfLayout.hiddenFrame(
+                for: target, displayFrame: screen.frame
+            )
+            panel.setFrame(start, display: true)
+            panel.alphaValue = 0
+            panel.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.38
+                context.timingFunction = CAMediaTimingFunction(
+                    controlPoints: 0.20, 0.82, 0.18, 1.0
+                )
+                panel.animator().setFrame(target, display: true)
+                panel.animator().alphaValue = 1
+            }
         }
-        panel.orderFrontRegardless()
         panel.makeKey()
-        // Focus after the nonactivating panel has actually become visible.
-        DispatchQueue.main.async { [weak self] in
-            self?.model.panelPresentationID &+= 1
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            guard let self, !self.isClosingShelf else { return }
+            self.model.panelPresentationID &+= 1
         }
         if outsideClickMonitor == nil {
             outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
@@ -202,11 +226,34 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     }
 
     private func hidePanel() {
-        panel?.orderOut(nil)
+        guard let panel, panel.isVisible, !isClosingShelf else { return }
+        panelTransitionID &+= 1
+        let token = panelTransitionID
+        isClosingShelf = true
         if let outsideClickMonitor {
             NSEvent.removeMonitor(outsideClickMonitor)
             self.outsideClickMonitor = nil
         }
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+              let screen = panel.screen ?? NSScreen.main else {
+            panel.orderOut(nil)
+            panel.alphaValue = 1
+            return
+        }
+
+        let hidden = ClipboardShelfLayout.hiddenFrame(
+            for: panel.frame, displayFrame: screen.frame
+        )
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().setFrame(hidden, display: true)
+            panel.animator().alphaValue = 0
+        }, completionHandler: { [weak self, weak panel] in
+            guard let self, self.panelTransitionID == token else { return }
+            panel?.orderOut(nil)
+            panel?.alphaValue = 1
+        })
     }
 
     private func registerHotkey(_ preset: ClipboardHotkeyPreset) -> Bool {
