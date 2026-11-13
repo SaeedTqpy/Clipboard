@@ -8,6 +8,9 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 > **Developer preview · v0.2.0.** The November 13, 2026 bottom-shelf and color-tags build passed **51/51 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 
+
+**App icon:** the app includes an original, resolution-independent glass clipboard icon (see [icon implementation](docs/APP_ICON.md)).
+
 ## Screenshots
 
 <!-- SCREENSHOTS:START -->

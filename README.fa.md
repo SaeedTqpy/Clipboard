@@ -121,3 +121,8 @@ xcodebuild test -project Clipboard.xcodeproj -scheme Clipboard \
 ---
 
 Clipboard یک پروژهٔ مستقل است و وابستگی رسمی به Apple ندارد.
+
+
+### آیکون برنامه
+
+لوگوی جدید با هویت شیشه‌ای آبی و بنفش برای Clipboard آماده شده است. تصویر اولیه به یک نسخهٔ بازطراحی‌شده با گرافیک Native تبدیل می‌شود و در Build مک، فایل `Clipboard.icns` همراه برنامه بسته‌بندی می‌شود. [مستندات ساخت آیکون](docs/APP_ICON.md).

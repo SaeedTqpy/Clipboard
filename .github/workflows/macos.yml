@@ -52,6 +52,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
           lipo -info .derived/Build/Products/Release/Clipboard.app/Contents/MacOS/Clipboard
 
+      - name: Verify bundled app icon
+        run: |
+          APP=".derived/Build/Products/Release/Clipboard.app"
+          ICON="$APP/Contents/Resources/Clipboard.icns"
+          test -s "$ICON"
+          test "$( /usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$APP/Contents/Info.plist" )" = "Clipboard.icns"
+          iconutil --convert iconset "$ICON" --output "$RUNNER_TEMP/ClipboardVerified.iconset"
+          test -s "$RUNNER_TEMP/ClipboardVerified.iconset/icon_512x512@2x.png"
+
       - name: Package and checksum
         run: |
           mkdir -p dist
