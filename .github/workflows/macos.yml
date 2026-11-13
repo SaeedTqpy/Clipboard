@@ -1,10 +1,9 @@
 name: Clipboard macOS
 
-# One-time validation requested for Dock overlay fix; restore manual-only after dispatch.
+# Intentionally manual: conserve GitHub Actions minutes.
+# Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 concurrency:
   group: clipboard-manual-build
