@@ -16,9 +16,21 @@ targets:
     platform: macOS
     sources:
       - path: Clipboard
+    preBuildScripts:
+      - name: Generate macOS icon
+        script: |
+          set -euo pipefail
+          /usr/bin/swift "$SRCROOT/scripts/render-app-icon.swift" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Clipboard.icns"
+        shell: /bin/bash
+        inputFiles:
+          - $(SRCROOT)/scripts/render-app-icon.swift
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Clipboard.icns
+        basedOnDependencyAnalysis: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.clipboard.app
+        INFOPLIST_KEY_CFBundleIconFile: Clipboard.icns
         MARKETING_VERSION: "0.2.0"
         CURRENT_PROJECT_VERSION: "2"
         INFOPLIST_KEY_CFBundleDisplayName: Clipboard
