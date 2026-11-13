@@ -1,30 +1,39 @@
-# Clipboard production roadmap
+# Clipboard production release roadmap
 
-## Implemented — functional foundation (code committed; final batch not yet CI-validated)
+## Implemented in source (requires a new manual CI validation run)
 
-- SwiftUI/AppKit floating shelf, native Liquid Glass on macOS 26, fallback materials.
-- Menu bar utility, first-launch discovery and fixed ⌘⇧V global shortcut.
-- Text, links, images, single/multi-file clipboard history, deduplication.
-- SQLite/FTS5 indexing, schema versioning, retention maintenance, 512 MiB unpinned image-asset budget, and pinned clips.
-- Collections, kind filters, quick visible-card shortcuts, copy/paste actions.
-- Sequential session-only Paste Stack and conservative destination PID check.
-- Opt-in monitoring, image/file toggles, best-effort sensitive app/type exclusions and app exclusion UI.
-- Manual-only GitHub Actions building unsigned universal Mac artifacts, unit tests.
+- SwiftUI + AppKit menu bar utility, floating Liquid Glass-capable shelf, ⌘⇧V.
+- History for text, links, images, multi-file selections; controls for pin, copy, paste, collections, kind filter.
+- Paste Stack session queue, ⌘1–9 action shortcuts and destination-app PID check before posting paste events.
+- Opt-in monitoring, source exclusions, recording toggles and retention limits.
+- Keychain-backed AES-256-GCM encrypted history, encrypted PNG assets and keyed HMAC fingerprints.
+- In-memory search without plaintext SQLite FTS; 32 MiB bounded decoded cache.
+- Schema-v3 migration from legacy plaintext SQLite and PNG history; crash-interruption best-effort cleanup.
+- Encrypted portable passphrase backups, restore merge, explicit database quarantine and reset.
+- Async thumbnail decode, image decompression caps, 512 MiB unpinned image asset budget.
+- Optional login-item controls and close-on-external-click interaction.
+- Unit tests for vault, backup, storage, migration, recovery, filter and app exclusion policies.
+- Workflow manually triggered only, to avoid consuming GitHub Actions minutes for each push.
 
-## Next release blockers (must be implemented and verified)
+## Must verify before beta
 
-1. **Security:** threat model, encrypted-at-rest content/index design, Keychain key lifecycle, secret exclusion edge cases, loss-of-device response, user privacy consent and security tests.
-2. **Correctness:** complete UI/permission integration tests on macOS 15 and macOS 26, app-to-app paste reliability, clipboard rich data, HTML/RTF, file disappearance and multi-selection behavior.
-3. **Performance:** move image decode and disk writes off main actor; decode thumbnails lazily; tune polling/energy use, memory footprint, disk quotas and massive-history search.
-4. **UX:** reliable dismiss-on-click-outside, arrow-key selection, configurable shortcuts, drag-and-drop reordering, paste-as-plain-text commands, editing/searching collections, enhanced previews.
-5. **Storage:** robust backup/restore/import/export with explicit disclosure, corruption recovery, transactional asset cleanup and safe disk caps.
-6. **macOS integration:** launch at login, permission onboarding, app icons, explicit accessibility status, multiple displays/screen sizes, localization, VoiceOver and reduced motion.
-7. **Release engineering:** reproducible toolchain pinning, UI test suites, signed Developer ID DMG, Apple notarization, versioned release notes and update strategy.
+1. **Compile the latest commit:** run one manual macOS 26 Actions workflow with tests; capture errors and fix as a batch.
+2. **Real device:** Apple Silicon and Intel macOS 15–26, Gatekeeper, Keychain access on unsigned app, Accessibility prompt, actual direct paste, global shortcut conflicts and login item approval.
+3. **Legacy migration:** test against a backup copy of the v2 database and assets. Ensure no plaintext search index or image files remain in active storage after migration.
+4. **Restore:** wrong password, corrupted archive, interrupted import, wrong device, lost Keychain key and missing referenced external files.
+5. **Performance:** main-thread responsiveness with 5,000 records, image-heavy histories, Keychain latency, encrypted search and energy consumption.
+6. **Privacy:** test non-cooperating password managers, concealed pasteboard types, focus changes, screen locking, and secret data in OS snapshots and previous backups.
+7. **Quality:** UI automation, accessibility, keyboard navigation, VoiceOver, internationalization, reduced motion and multi-monitor layouts.
 
-## No paid Apple Developer account today
+## Next engineering milestones
 
-Continue using unsigned local builds. Apple notarization and broadly distributable warning-free releases must wait until a Developer ID account and certificates are available.
+- Asynchronous serialized persistence actor and privacy-preserving blind search indexing if performance requires it.
+- Full rich clipboard types: HTML/RTF, multi-flavor preservation, and Paste as Plain Text.
+- Customizable shortcut recorder and keyboard navigation, collection drag/drop, Paste Stack persistence.
+- Streaming encrypted backups for large histories and more robust import conflict control.
+- Localization (English/Persian), icon asset creation, app metadata and release screenshots.
+- Signed, notarized package and updater when Apple Developer ID becomes available.
 
 ## CI policy
 
-\`.github/workflows/macos.yml\` only responds to \`workflow_dispatch\`. There are no automatic runs on push or pull requests; trigger a build only at a meaningful validation checkpoint.
+The macOS workflow is **workflow_dispatch-only**, with a single manual validation at milestones. Never restore automatic on-push builds unless the repository owner explicitly asks.

@@ -1,65 +1,61 @@
-# Manual macOS acceptance checklist
+# Clipboard — macOS manual acceptance and security test plan
 
-> GitHub Actions does not have physical access to the user's Mac, other desktop apps or a real Accessibility permission flow. Mark these checks only after hands-on testing.
+The GitHub Actions runner cannot verify real user input, Accessibility authorization or native Mac clipboard integration. Do not mark any checklist item complete without evidence.
 
-## 1. Install and first launch
+## Build gate
 
-- [ ] Download the unsigned universal app artifact and verify SHA-256.
-- [ ] Launch on macOS 26 Apple Silicon; later repeat on macOS 15+ and Intel.
-- [ ] Approve an unsigned personal build in Privacy & Security if needed.
-- [ ] App starts as a menu bar agent and opens the shelf for first-launch discovery.
-- [ ] Monitoring starts **paused** on a fresh install; no earlier clipboard data was saved.
-- [ ] Enabling monitoring records new text but not stale paused items.
+- [ ] Manually run the macOS workflow on the latest commit; avoid push-triggered builds.
+- [ ] All unit tests pass (privacy exclusions, migration, encryption, backup, recovery).
+- [ ] Universal arm64/x86_64 binary is produced, checksum verified.
+- [ ] Run the app on an actual macOS 26 Mac; check fallback on macOS 15–25.
+- [ ] Verify Liquid Glass effect only on macOS 26; reduced transparency remains usable.
 
-## 2. Core capture
+## Encryption and migration
 
-- [ ] Copy plain text, UTF-8/Persian text, multiline code and large text.
-- [ ] Copy HTTP/HTTPS links; kind filter identifies them.
-- [ ] Copy screenshots and images; previews display and persist after relaunch.
-- [ ] Copy one file and multiple files; paste back into Finder with correct selection.
-- [ ] Recopy the same payload; only one entry remains and moves to the top.
-- [ ] Copy from a password manager with concealed/transient annotations: not recorded.
-- [ ] Add a running app to ignored bundle IDs; new copies from that app do not appear.
-- [ ] Disable images/files; copying them no longer creates those entries.
-- [ ] Pause, copy data, resume; paused content is not imported retroactively.
+- [ ] Fresh installation defaults to paused; copied data is not persisted until enabled.
+- [ ] SQLite does not contain copied text, file paths or source names in readable form.
+- [ ] Asset files contain authenticated ciphertext, not plaintext PNG data.
+- [ ] Changing the Keychain key prevents decryption and fails closed without resetting history.
+- [ ] Migrating legacy v2 DB retains pins, collections and image assets, removes legacy FTS.
+- [ ] Interrupt a copied test migration midway; re-launch with no silent loss.
+- [ ] Move a damaged DB to quarantine after explicit confirmation; verify original files remain intact.
+- [ ] Check that data from old backups/APFS snapshots may persist despite VACUUM.
 
-## 3. UI and workflow
+## Backup and restore
 
-- [ ] ⌘⇧V opens and closes the shelf from another app.
-- [ ] Search focuses on open; Escape closes.
-- [ ] Search recognizes partial words, punctuation and Persian text where applicable.
-- [ ] Pin, unpin and delete work without duplicate entries.
-- [ ] Collections can be created and clips assigned/filtered.
-- [ ] Kind filter combines correctly with collection, pin and search.
-- [ ] ⌘1–9 targets the corresponding visible clip.
-- [ ] Paste Stack processes multiple items in added order.
-- [ ] Clear All requires confirmation and removes image assets.
-- [ ] Settings open from both the panel and menu bar.
+- [ ] Export with a 12+ character passphrase; source never leaves app as plaintext.
+- [ ] Restore on a second Mac using only the backup file and passphrase.
+- [ ] Wrong password or tampered backup does not change history.
+- [ ] Preserve pins, collections, image previews and copyable text after restore.
+- [ ] Restore duplicate records without creating duplicates; backup import stays atomic.
+- [ ] Oversized backup yields an actionable error.
+- [ ] Missing external file URL is handled without crashing; actual external file bytes are not in the backup.
 
-## 4. Accessibility and target safety
+## Capture and user interaction
 
-- [ ] Without Accessibility permission, Copy succeeds and Paste does not synthesize keys.
-- [ ] Request Accessibility permission through settings; verify Security settings.
-- [ ] With permission, paste into Notes, Safari, a code editor and Finder.
-- [ ] Change focus while an automatic paste is pending; no simulated paste is sent to the wrong app.
-- [ ] Test full-screen apps, multiple Spaces and multiple monitors.
-- [ ] Test that global shortcut conflicts display an actionable warning.
+- [ ] Capture Persian and English text, code, links and images from multiple apps.
+- [ ] Copy multiple files in Finder, then paste into Finder with selection intact.
+- [ ] Excluded bundle IDs and known concealed/transient annotations suppress capture.
+- [ ] Toggle image and file capture; paused content is not imported on resume.
+- [ ] Duplicate copies move the old item to top without losing pin/collection.
+- [ ] Search, pin, collections, kind filters, clear and Paste Stack operate correctly.
+- [ ] ⌘⇧V and ⌘1–9 work with keyboard focus, including text field and fullscreen apps.
+- [ ] Clicking outside the panel closes it; panel appears on correct display.
+- [ ] Direct Paste to Notes, Finder, Safari, browser inputs and VS Code; verify target focus.
+- [ ] Clipboard doesn't synthesize keystrokes without Accessibility permission.
+- [ ] Launch-at-login works, or provides actionable signed-build limitation.
 
-## 5. Persistence and migration
+## Performance and quality
 
-- [ ] Relaunch: entries, pins, collections, search and retention settings persist.
-- [ ] Migrate a database made by the older release to schema v2 without losing history.
-- [ ] Reduce retention count/days and verify only unpinned entries are pruned.
-- [ ] Verify database and image directory permissions for the user account.
-- [ ] Delete an image entry and confirm its unreferenced asset is removed.
-- [ ] Run SQLite integrity_check on a copied test database (not active production DB).
-- [ ] Verify no clipboard payload appears in app logs, CI logs or network traffic.
+- [ ] Fast scrolling of 500 clips with many images doesn't trigger large CPU spikes.
+- [ ] Copying large images never blocks the main event loop.
+- [ ] Energy use over 30 minutes of idle polling is acceptable.
+- [ ] Search among 5,000 encrypted records remains responsive; cache stays bounded.
+- [ ] Unpinned image assets are pruned at 512 MiB; pinned assets are exempt.
+- [ ] App launches and stores history with locked/unlocked Keychain behavior understood.
+- [ ] No clipboard contents are logged, uploaded or included in crash diagnostics.
+- [ ] VoiceOver, high contrast, reduced motion and Persian UI are reviewed.
 
-## 6. Performance and release criteria
+## Release gate
 
-- [ ] Observe idle CPU/energy impact over a 30-minute session.
-- [ ] Copy dozens of screenshots; verify responsive UI and reasonable memory usage.
-- [ ] Run search on 1,000 items with no freezes.
-- [ ] Check VoiceOver, Dark/Light, high contrast and keyboard-only use.
-- [ ] Run a **single** manually triggered macOS Actions build at the agreed validation checkpoint.
-- [ ] Do not declare the app production ready until security, corruption recovery and real-device gates pass.
+A successful compilation is **not** a production-release approval. Complete encryption, migration, security, device, usability and performance gates before a wider beta. Distributable signed/notarized versions require a suitable Apple Developer account.
