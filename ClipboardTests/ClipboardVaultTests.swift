@@ -23,7 +23,7 @@ final class ClipboardVaultTests: XCTestCase {
     func testPortableBackupRoundTripAndWrongPassword() throws {
         let data = Data("archive".utf8)
         let encrypted = try ClipboardBackupCrypto.seal(data, password: "correct horse battery staple")
-        XCTAssertFalse(encrypted.contains(Data("archive".utf8)))
+        XCTAssertNil(encrypted.range(of: Data("archive".utf8)))
         XCTAssertEqual(
             try ClipboardBackupCrypto.open(encrypted, password: "correct horse battery staple"), data
         )

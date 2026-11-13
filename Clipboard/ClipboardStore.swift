@@ -620,7 +620,12 @@ final class ClipboardStore {
                   (entry.content.body?.utf8.count ?? 0) <= 2 * 1024 * 1024,
                   (entry.content.richData?.count ?? 0) <= 2 * 1024 * 1024,
                   (entry.imageData?.count ?? 0) <= 12 * 1024 * 1024,
+                  (entry.content.filePath?.utf8.count ?? 0) <= 100_000,
+                  (entry.content.collection?.count ?? 0) <= 60,
                   ClipKind(rawValue: entry.content.kind) != nil,
+                  (entry.content.kind != ClipKind.image.rawValue || entry.imageData != nil),
+                  (entry.content.kind != ClipKind.richText.rawValue ||
+                       (entry.content.richData != nil && entry.content.richType != nil)),
                   entry.createdAt.isFinite else {
                 throw ClipboardStoreError.invalidArchive
             }
