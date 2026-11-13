@@ -23,7 +23,7 @@ final class ClipboardPastePermissionPolicyTests: XCTestCase {
         XCTAssertEqual(
             ClipboardPastePermissionPolicy.missing(
                 accessibility: false, postEvent: true
-            ), .accessibility
+            ), .none
         )
         XCTAssertEqual(
             ClipboardPastePermissionPolicy.missing(
@@ -32,12 +32,22 @@ final class ClipboardPastePermissionPolicyTests: XCTestCase {
         )
     }
 
+    func testAccessibilityDenialCannotBlockAuthorizedPostEvent() {
+        // The app only posts keyboard events; it does not require the full
+        // Accessibility client authorization for this operation.
+        XCTAssertEqual(
+            ClipboardPastePermissionPolicy.missing(
+                accessibility: false, postEvent: true
+            ), .none
+        )
+    }
+
     func testDiagnosticDistinguishesPostEventFromAccessibility() {
         XCTAssertTrue(
             ClipboardPastePermissionPolicy.diagnostics(.postEvent).hasPrefix("E3P")
         )
         XCTAssertTrue(
-            ClipboardPastePermissionPolicy.diagnostics(.accessibility).hasPrefix("E3A")
+            ClipboardPastePermissionPolicy.diagnostics(.both).hasPrefix("E3B")
         )
     }
 }

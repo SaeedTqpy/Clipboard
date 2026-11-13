@@ -511,12 +511,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         guard missingPermission == .none else {
             // AX and PostEvent are *separate* TCC decisions. AX=true does not
             // imply CGEvent keyboard injection has been authorized.
-            if !accessibility {
-                let options = [
-                    kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
-                ] as CFDictionary
-                _ = AXIsProcessTrustedWithOptions(options)
-            }
+            // Do not pop the unrelated Accessibility prompt here. Our Paste
+            // implementation posts a keyboard event, requiring PostEvent.
             if !posting {
                 // This requests the actual keystroke-posting permission.
                 // Result may remain false until user approval + app relaunch.
