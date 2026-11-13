@@ -20,8 +20,10 @@ Clipboard lives in the menu bar and lets you find, organize, and reuse copied te
 | --- | --- |
 | Clipboard history | Text, HTTP(S) links, HTML/RTF, images and single/multiple file references |
 | Native shelf | Floating horizontal cards, search, quick copy and paste |
-| Organization | Pinning, deletion, collections, and content-type filtering |
-| Quick paste | **⌘⇧V** to open; **⌘1–9** for visible entries; Paste as Plain Text |
+| Organization | Pinning, editable titles, text editing, collections, app/date/kind filters and bulk recent cleanup |
+| Searchable images | Optional, **on-device Apple Vision OCR**; detected text is encrypted at rest |
+| Reusable snippets | Create or convert text to pinned snippets; no system-wide auto-expansion |
+| Quick paste | Configurable global shortcut, ↑↓ selection, Return paste, Option+Return plain, ⌘1–9 quick picks |
 | Paste Stack | Queue clips and paste them sequentially during the current session |
 | Privacy | Opt-in monitoring, application exclusions, image/file capture toggles |
 | Storage | AES-256-GCM encrypted clips and image assets, Keychain-held device key |
@@ -64,8 +66,13 @@ There is no official signed installer, notarized DMG, App Store release or autom
 | **⌘⇧V** | Show or hide the floating shelf |
 | **⌘1 … ⌘9** | Paste one of the first nine currently visible clips if the panel receives the shortcut |
 | **Esc** | Dismiss the shelf |
+| **↑ / ↓** | Select earlier / later clip |
+| **Return** | Paste selected clip |
+| **Option + Return** | Paste selected clip without formatting (text types) |
+| **⌘P** | Pin or unpin selected clip |
+| **⌘Backspace** | Ask to delete selected clip |
 
-The global hotkey is currently fixed and may conflict with shortcuts in other applications.
+The global hotkey can be changed in Settings to several preset combinations. A conflicting replacement is rejected without intentionally unbinding the existing shortcut.
 
 ## Privacy and data safety
 
@@ -118,7 +125,7 @@ Clipboard/
 
 ## Contributing and support
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [ROADMAP.md](docs/ROADMAP.md) and the [real-device acceptance checklist](docs/MAC_DEVICE_QA.md). Bug reports and focused contributions are welcome, but **never upload real clipboard contents, raw databases, secrets or unredacted logs to public issues**.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [competitive analysis](docs/COMPETITIVE_ANALYSIS.md), [ROADMAP.md](docs/ROADMAP.md) and the [real-device acceptance checklist](docs/MAC_DEVICE_QA.md). Bug reports and focused contributions are welcome, but **never upload real clipboard contents, raw databases, secrets or unredacted logs to public issues**.
 
 ### License
 

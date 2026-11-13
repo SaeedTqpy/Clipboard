@@ -15,6 +15,15 @@
 - Unit tests for vault, backup, storage, migration, recovery, filter and app exclusion policies.
 - Workflow manually triggered only, to avoid consuming GitHub Actions minutes for each push.
 
+## Competitive implementation batch — 2026-11-13 (unvalidated)
+
+- Keyboard-first selection with NSPanel event handling, editable shortcut presets, Return / Option+Return / Cmd+P / Cmd+1–9.
+- Optional offline Vision OCR for image search, encrypted alongside text titles and source metadata.
+- Create/pin/edit encrypted Snippets, in-place text editing with fingerprint-safe collision handling.
+- Filter by source application and time window; clear recent unpinned entries with confirmation.
+- See [competitive analysis](COMPETITIVE_ANALYSIS.md) for comparison and explicit non-goals.
+- **This batch has not yet been validated by macOS CI; do not label ready for distribution until compile, test, and device QA succeed.**
+
 ## Must verify before beta
 
 1. **Build validation passed:** macOS 26 Actions run [43389410106](https://github.com/SaeedTqpy/Clipboard/actions/runs/43389410106) built universal Release and passed all 29 tests. Do not confuse this with hardware/permission acceptance.

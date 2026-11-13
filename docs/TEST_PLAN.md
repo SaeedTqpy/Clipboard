@@ -47,6 +47,19 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 - [ ] Clipboard doesn't synthesize keystrokes without Accessibility permission.
 - [ ] Launch-at-login works, or provides actionable signed-build limitation.
 
+## Competitive features QA
+
+- [ ] Run updated macOS CI on this batch and pass all new OCR/snippet/keyboard tests.
+- [ ] Navigate shelf with ↑↓, paste with Return and Option+Return; verify typing in Search still works.
+- [ ] Test Cmd+P, Cmd+Delete confirmation and Cmd+1–9 with keyboard and multiple windows.
+- [ ] Change global shortcut preset; verify conflict rejection leaves prior shortcut functional.
+- [ ] Enable OCR, copy a known test screenshot and search for its recognized text, with no network requests.
+- [ ] Disable OCR; verify no new recognition is performed.
+- [ ] Create/edit a Snippet, leave pinned, restart app and check data remains searchable and encrypted.
+- [ ] Verify renamed clips and OCR text survive portable encrypted backup/restore.
+- [ ] Filter source app/date and clear last 5/15/60 minutes without deleting pins.
+- [ ] Verify text edits update fingerprints and do not silently merge duplicate clips.
+
 ## Performance and quality
 
 - [ ] Fast scrolling of 500 clips with many images doesn't trigger large CPU spikes.
