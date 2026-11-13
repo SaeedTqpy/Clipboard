@@ -1,0 +1,1 @@
+Clipboard competitive features one-shot macOS validation (OCR, snippets, editable clips, keyboard, colors).
