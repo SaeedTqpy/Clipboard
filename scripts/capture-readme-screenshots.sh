@@ -32,17 +32,20 @@ capture() {
   local filename="$1"
   local description="$2"
   local destination="docs/screenshots/$filename"
+  local pending="docs/screenshots/.pending-$filename"
 
   echo
   echo "$description"
   read -r -p "Press Return to select the Clipboard window (Ctrl-C cancels) ... " _
-  rm -f "$destination"
-  screencapture -i -W -o -t png "$destination"
+  rm -f "$pending"
+  screencapture -i -W -o -t png "$pending"
 
-  if [[ ! -s "$destination" ]]; then
+  if [[ ! -s "$pending" ]]; then
+    rm -f "$pending"
     echo "ERROR: no screenshot captured for $filename; README unchanged." >&2
     exit 1
   fi
+  mv -f "$pending" "$destination"
   echo "Captured: $destination"
 }
 
