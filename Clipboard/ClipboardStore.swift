@@ -99,6 +99,7 @@ final class ClipboardStore {
         }
         database = handle
         vault = key
+        do {
         try FileManager.default.setAttributes(
             [.posixPermissions: 0o600], ofItemAtPath: url.path
         )
@@ -118,6 +119,11 @@ final class ClipboardStore {
         try execute("CREATE INDEX IF NOT EXISTS secure_clips_recent ON secure_clips(pinned DESC, created_at DESC);")
         try migrateLegacyIfNeeded()
         try prune()
+        } catch {
+            // A failed initializer has no deinit; close the opened SQLite handle.
+            sqlite3_close(handle)
+            throw error
+        }
     }
 
     deinit { sqlite3_close(database) }

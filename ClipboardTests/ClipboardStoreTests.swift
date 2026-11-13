@@ -197,4 +197,22 @@ final class ClipboardStoreTests: XCTestCase {
         let restarted = try ClipboardStore(directoryOverride: root, testKey: key)
         XCTAssertTrue(try restarted.items(search: "").isEmpty)
     }
+    func testCorruptDatabaseFailsClosedWithoutDeletingUserFiles() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClipboardCorrupt-\(UUID().uuidString)")
+        temporaryRoots.append(root)
+        let folder = root.appendingPathComponent("Clipboard", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: folder, withIntermediateDirectories: true
+        )
+        let database = folder.appendingPathComponent("history.sqlite3")
+        let original = Data("THIS IS NOT A SQLITE DATABASE".utf8)
+        try original.write(to: database)
+        XCTAssertThrowsError(try ClipboardStore(
+            directoryOverride: root,
+            testKey: Data(repeating: 0x42, count: 32)
+        ))
+        XCTAssertEqual(try Data(contentsOf: database), original)
+    }
+
 }
