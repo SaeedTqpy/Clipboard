@@ -18,7 +18,9 @@ enum ClipKind: String, CaseIterable {
         }
     }
 
-    var title: String { rawValue.capitalized }
+    var title: String {
+        self == .richText ? "Rich Text" : rawValue.capitalized
+    }
 }
 
 struct ClipItem: Identifiable, Equatable {
@@ -33,8 +35,8 @@ struct ClipItem: Identifiable, Equatable {
     let pinned: Bool
     let fingerprint: String
     let collection: String?
-    let richData: Data? = nil
-    let richType: String? = nil
+    var richData: Data? = nil
+    var richType: String? = nil
 }
 
 struct ClipPayload {
