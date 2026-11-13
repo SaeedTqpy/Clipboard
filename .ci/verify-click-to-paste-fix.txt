@@ -1,0 +1,1 @@
+Consolidated macOS regression: actual card hit-test, destination PID state, Accessibility + event posting, icon, universal Release.
