@@ -314,8 +314,8 @@ struct ClipboardPanelView: View {
             RoundedRectangle(cornerRadius: 23, style: .continuous)
                 .strokeBorder(.white.opacity(0.24), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.28), radius: 35, y: -8)
         .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
+        .shadow(color: .black.opacity(0.28), radius: 35, y: -8)
         .onExitCommand(perform: onDismiss)
         .onChange(of: model.panelPresentationID) { _, _ in
             searchFocused = true

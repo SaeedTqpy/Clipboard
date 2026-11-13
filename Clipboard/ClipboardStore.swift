@@ -495,9 +495,15 @@ final class ClipboardStore {
         }
         // Canonicalize reused tags to the existing color/name.
         let tag = try tagCatalog().first(where: { $0.id == requested.id }) ?? requested
+        guard let current = try allRows().first(where: { $0.item.id == clipID })?.item else {
+            throw ClipboardStoreError.database("Clip no longer exists.")
+        }
+        if current.tags.contains(where: { $0.id == tag.id }) { return }
+        guard current.tags.count < 5 else {
+            throw ClipboardStoreError.database("A clip can have at most five colored tags.")
+        }
         try updateRecord(id: clipID) { record in
             var tags = record.tags ?? []
-            guard !tags.contains(where: { $0.id == tag.id }), tags.count < 5 else { return }
             tags.append(tag)
             record.tags = tags
         }
