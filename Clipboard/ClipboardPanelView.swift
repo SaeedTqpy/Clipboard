@@ -3,9 +3,21 @@ import SwiftUI
 import ApplicationServices
 import UniformTypeIdentifiers
 
+enum ClipboardCardTapBehavior: Equatable {
+    case pasteToPreviousApp
+    case selectForManagement
+}
+
 enum ClipboardPanelPresentation: Equatable {
     case shelf
     case management
+
+    var cardTapBehavior: ClipboardCardTapBehavior {
+        switch self {
+        case .shelf: return .pasteToPreviousApp
+        case .management: return .selectForManagement
+        }
+    }
 }
 
 struct ClipboardPanelView: View {
@@ -248,12 +260,13 @@ struct ClipboardPanelView: View {
                                         model.copyRecognizedText(item)
                                     },
                                     onPrimaryClick: {
-                                        if presentation == .shelf {
-                                            onPaste(item)
-                                        } else {
+                                        switch presentation.cardTapBehavior {
+                                        case .pasteToPreviousApp: onPaste(item)
+                                        case .selectForManagement:
                                             model.selectedClipID = item.id
                                         }
                                     },
+                                    primaryClickPastes: presentation == .shelf,
                                     tags: model.tags,
                                     onApplyTag: { tag in model.attachTag(tag, to: item) },
                                     onRemoveTag: { id in model.detachTag(id, from: item) },
@@ -464,6 +477,7 @@ private struct ClipCard: View {
     let onSaveSnippet: () -> Void
     let onCopyRecognizedText: () -> Void
     let onPrimaryClick: () -> Void
+    let primaryClickPastes: Bool
     let tags: [ClipTag]
     let onApplyTag: (ClipTag) -> Void
     let onRemoveTag: (String) -> Void
@@ -474,7 +488,11 @@ private struct ClipCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            // This button covers only the non-interactive card preview.
+            // Copy / Paste / the action menu remain independent controls.
+            Button(action: onPrimaryClick) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
                 Image(systemName: item.kind.symbol)
                 Text(item.kind.title.uppercased())
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -564,8 +582,21 @@ private struct ClipCard: View {
                 }
                 .font(.system(size: 9))
                 .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 11)
+                .padding(.top, 11)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                primaryClickPastes
+                    ? "Paste \(item.displayName ?? item.preview) into previous application"
+                    : "Select \(item.displayName ?? item.preview)"
+            )
+            .help(primaryClickPastes ? "Click to paste and close the shelf" : "Select clip")
 
-                HStack(spacing: 6) {
+            HStack(spacing: 6) {
                     Button("Copy", action: onCopy)
                         .buttonStyle(.bordered)
                         .help("Copy this clip to the system pasteboard")
@@ -625,8 +656,9 @@ private struct ClipCard: View {
                     .frame(width: 27)
                 }
                 .controlSize(.small)
-            }
-            .padding(11)
+                .padding(.horizontal, 11)
+                .padding(.top, 6)
+                .padding(.bottom, 11)
         }
         .frame(width: 230, height: 224)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.93),
@@ -641,8 +673,6 @@ private struct ClipCard: View {
         }
         .shadow(color: isSelected ? item.kind.ribbonColor.opacity(0.12) : .clear,
                 radius: 12)
-        .contentShape(RoundedRectangle(cornerRadius: 15))
-        .onTapGesture(perform: onSelect)
         .accessibilityElement(children: .contain)
     }
 }
