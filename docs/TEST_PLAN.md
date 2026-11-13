@@ -63,13 +63,13 @@ The GitHub Actions runner cannot verify real user input, Accessibility authoriza
 ## Verified CI milestone — 2026-11-13
 
 - [x] Compiled the latest animated bottom shelf and encrypted color tags on macOS 26.
-- [x] **57/57 XCTest tests passed**, including geometry and tag lifecycle tests.
+- [x] **62/62 XCTest tests passed**, including geometry and tag lifecycle tests.
 - [x] Release compiled for both x86_64 and arm64.
 - [x] Artifact ZIP integrity and inner application archive SHA-256 verified.
 - [x] Restored macOS CI to manual-only after batched validation.
 - [ ] Real-device visual acceptance, Dock/Space transitions, Accessibility and Paste focus checks still required.
 
-Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294).
+Evidence: [macOS Actions #43417580697](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
 
 ## Separate Quick Shelf and Clipboard Manager (new milestone)
 
@@ -119,8 +119,8 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ## Win-key shortcut and one-click paste — verified CI, 2026-11-13
 
-- [x] Mac CI: **57/57 XCTest cases successful** (includes shortcut migration and shelf-versus-manager card tap routing).
-- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294).
+- [x] Mac CI: **62/62 XCTest cases successful** (includes shortcut migration and shelf-versus-manager card tap routing).
+- [x] Universal Intel x86_64 / Apple Silicon arm64 unsigned Release built: [Actions #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
 - [x] Inner app ZIP SHA-256 matches the bundled checksum.
 - [ ] Physical Windows-logo modifier keyboard mapping and focus-safe insertion into Notes/VS Code/Safari still require manual on-device QA.
 
@@ -129,7 +129,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 - [x] Script draws ten PNG variants and macOS `iconutil` generates ICNS in XcodeGen pre-build phase.
 - [x] App Info.plist includes `CFBundleIconFile=Clipboard.icns` (explicit plist generation).
 - [x] CI extracts the bundled ICNS as an iconset; 1024px entry is present.
-- [x] 57/57 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294).
+- [x] 62/62 tests passed; unsigned universal Release built [here](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781).
 - [ ] Confirm actual Finder and Dock display and icon caching on a user's Mac.
 
 ## Click-to-Paste reliability — regression after user report
@@ -146,7 +146,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ### Verified automated results — 2026-11-13
 
-[macOS Build #43463188294](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294): **57/57 XCTest cases passed**; Universal Release for x86_64 + arm64 built; bundled icon validation and packaging passed. Archive SHA-256 was independently matched against included SHA256SUMS. **This validates compilation and routing policy, not the physical result of a click-to-paste on the user's Mac.**
+[macOS Build #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781): **62/62 XCTest cases passed**; Universal Release for x86_64 + arm64 built; bundled icon validation and packaging passed. Archive SHA-256 was independently matched against included SHA256SUMS. **This validates compilation and routing policy, not the physical result of a click-to-paste on the user's Mac.**
 
 
 ## Session-command paste and redacted diagnostics
@@ -160,7 +160,7 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ## Validated session Command-V build — 2026-11-13
 
-- [x] [macOS Actions #43463188294](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294) passed **57/57 XCTest cases** and produced an unsigned universal `x86_64` + `arm64` app.
+- [x] [macOS Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed **62/62 XCTest cases** and produced an unsigned universal `x86_64` + `arm64` app.
 - [x] Custom bundled ICNS verified; inner `Clipboard-macOS-unsigned.zip` checksum matches included SHA256SUMS.
 - [x] All production/test source files at main match the validated commit.
 - [ ] User-device acceptance required: after clicking a card, confirm exactly one insertion into Notes/Safari/VS Code; use `Paste Diagnostics` and report stage code if not.
@@ -168,9 +168,13 @@ A successful compilation is **not** a production-release approval. Complete encr
 
 ## Accessibility identity fix — macOS release validation
 
-- [ ] CI produces an ad-hoc **signed** (not fully unsigned) universal `Clipboard.app` before ZIP.
-- [ ] `codesign --verify --strict` succeeds on the exact app that is subsequently packaged.
-- [ ] `codesign -dv` reports `Identifier=dev.clipboard.app` and `Signature=adhoc`.
-- [ ] `codesign -d -r-` returns a designated requirement.
-- [ ] Automated tests validate signature classification and App Translocation / install path detection.
+- [x] CI produces an ad-hoc **signed** (not fully unsigned) universal `Clipboard.app` before ZIP.
+- [x] `codesign --verify --strict` succeeds on the exact app that is subsequently packaged.
+- [x] `codesign -dv` reports `Identifier=dev.clipboard.app` and `Signature=adhoc`.
+- [x] `codesign -d -r-` returns a designated requirement.
+- [x] Automated tests validate signature classification and App Translocation / install path detection.
 - [ ] On a real Mac, reset and regrant Accessibility to the **installed new build**; the app's own audit changes to AX=true and EVENT=true; then validate actual Paste.
+
+### Verified TCC-identity packaging milestone
+
+[GitHub Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781): **62/62 tests passed** and `Clipboard-macOS-adhoc` published with a verified `dev.clipboard.app` ad-hoc signature and designated requirement. **Pending:** reinstall/reauthorization and real paste on user's Mac.

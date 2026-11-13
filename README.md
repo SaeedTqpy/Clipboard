@@ -6,7 +6,7 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 **[Experience the interactive 3D website](https://saeedtqpy.github.io/Clipboard/)** · **[فارسی](README.fa.md)** · [Download](#download--install) · [Usage](#getting-started) · [Screenshots](#screenshots) · [Report an issue](https://github.com/SaeedTqpy/Clipboard/issues)
 
-> **Developer preview · v0.2.0.** The November 13, 2026 bottom-shelf and color-tags build passed **57/57 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
+> **Developer preview · v0.2.0.** The November 13, 2026 ad-hoc signed TCC-identity build passed **62/62 automated tests** and produced a universal app for Apple Silicon and Intel. Real-device Accessibility, auto-paste, multi-display and security acceptance tests are still pending. This is **not a production-certified release**.
 
 
 **App icon:** the app includes an original, resolution-independent glass clipboard icon (see [icon implementation](docs/APP_ICON.md)).
@@ -45,10 +45,10 @@ Clipboard lives in the menu bar with two distinct surfaces: a full-width Quick S
 
 ## Download & install
 
-The latest verified CI build is [Clipboard macOS Actions run #43463188294](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294) (November 13, 2026).
+The latest verified ad-hoc signed CI build is [Clipboard macOS Actions run #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) (November 13, 2026).
 
-1. Open the successful run and download the **Clipboard-macOS-unsigned** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
-2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-unsigned.zip`.
+1. Open the successful run and download the **Clipboard-macOS-adhoc** artifact under **Artifacts**. You may need to sign in to GitHub. Artifacts currently expire after **14 days**.
+2. Extract the downloaded outer ZIP, then the inner `Clipboard-macOS-adhoc.zip`.
 3. **Quit all existing Clipboard instances** from the menu bar or Activity Monitor (especially old copies in Downloads). Move the extracted `Clipboard.app` into **Applications**, replacing the earlier version, then launch only the new copy.
 4. This is an **ad-hoc signed, unnotarized development build**. The signature is tied to this exact build, not a stable Developer ID. If Gatekeeper blocks it, only if you trust the origin, review **System Settings → Privacy & Security → Open Anyway**.
 5. Use *synthetic, non-sensitive* sample content first. Monitoring is **paused by default** on first launch.
@@ -126,7 +126,7 @@ Clipboard/
 └── .github/workflows/  Manual macOS build and tests
 ```
 
-**Build evidence:** [57/57 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
+**Build evidence:** [62/62 tests passed; universal arm64/x86_64 Release generated](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781). A warm-cache search over 500 synthetic entries averaged ~5 ms on that CI runner. Real-device and larger-history performance is not yet certified.
 
 ## Contributing and support
 
@@ -154,3 +154,6 @@ The Quick Shelf now sends a **session-level Command-V** after checking the remem
 ## Accessibility and code identity (important)
 
 Prior GitHub builds disabled signing completely, making `AXIsProcessTrusted()` and `CGPreflightPostEventAccess()` report `false` even though a Clipboard row appeared enabled in System Settings. CI now **ad-hoc signs the complete application after building it**, verifies its designated requirement and publishes `Clipboard-macOS-adhoc.zip`. Follow the **[exact post-install reauthorization steps](docs/TCC_SIGNING.md)** for this new build. Do not re-sign or change the app after granting access: that invalidates its version-specific code identity. The app's **Settings → Paste Diagnostics → Refresh TCC & Signing Status** displays the currently running bundle's code-signing mode, installation location and actual permission responses. This does not guarantee automatic insertion without a real-device Paste test.
+
+
+**Latest signing evidence (2026-11-13):** [macOS Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed 62/62 tests and produced `Clipboard-macOS-adhoc` (Intel + Apple Silicon). CI verified `codesign --verify --strict`, `Signature=adhoc`, `Identifier=dev.clipboard.app` and a designated requirement. Real Mac Accessibility reauthorization and actual Notes paste remain to be tested on-device.

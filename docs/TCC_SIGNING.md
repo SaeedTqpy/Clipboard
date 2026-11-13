@@ -100,3 +100,7 @@ switching the same toggle without examining these results.
 - [Apple AXIsProcessTrusted](https://developer.apple.com/documentation/applicationservices/1460720-axisprocesstrusted)
 - [Apple AXIsProcessTrustedWithOptions](https://developer.apple.com/documentation/applicationservices/1459186-axisprocesstrustedwithoptions)
 - [Apple Creating distribution-signed code for macOS](https://developer.apple.com/documentation/xcode/creating-distribution-signed-code-for-the-mac)
+
+## CI verification — 2026-11-13
+
+[GitHub Actions run #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) passed **62/62 tests**, created the Universal `arm64/x86_64` release, ad-hoc signed the final app and verified its designated requirement. The uploaded `Clipboard-macOS-adhoc` artifact contains an inner ZIP with a working `_CodeSignature/CodeResources` and its matching SHA-256 checksum. No real-device TCC authorization has been asserted.

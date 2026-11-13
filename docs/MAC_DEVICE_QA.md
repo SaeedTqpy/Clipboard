@@ -5,7 +5,7 @@ validate the user's actual macOS session, hardware permissions or target-app inp
 
 ## Setup (without local Xcode)
 
-1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936) from the successful run (57/57 tests; 2026-11-13). Do not trigger another build for this version.
+1. Download the [validated universal artifact](https://github.com/SaeedTqpy/Clipboard/actions/runs/43424718936) from the successful run (62/62 tests; 2026-11-13). Do not trigger another build for this version.
 2. Unzip the outer artifact archive, then the nested Clipboard-macOS-adhoc.zip.
 3. Copy Clipboard.app to /Applications. For ad-hoc signed preview, approve **your own trusted build** under System Settings → Privacy & Security if macOS blocks it.
 4. Use the package diagnostic shell script in the repo:

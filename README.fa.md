@@ -6,7 +6,7 @@ Clipboard یک برنامهٔ Menu Bar است که دو رابط مستقل دا
 
 **[مشاهده سایت سه‌بعدی Clipboard](https://saeedtqpy.github.io/Clipboard/)** · [English README](README.md) · [دانلود](#دانلود-و-نصب) · [تصاویر برنامه](docs/SCREENSHOTS.md) · [گزارش خطا](https://github.com/SaeedTqpy/Clipboard/issues)
 
-> **نسخهٔ پیش‌نمایش توسعه‌دهندگان — v0.2.0.** در ۱۳ نوامبر ۲۰۲۶، همهٔ **۵۷ تست خودکار** نسخهٔ جدید Shelf و تگ‌های رنگی موفق شدند و خروجی Universal برای Apple Silicon و Intel ساخته شد. تست مجوز Accessibility، Paste واقعی و چندمانیتوره روی مک کاربر همچنان باقی است. این نسخه هنوز تأییدیهٔ انتشار عمومی ندارد.
+> **نسخهٔ پیش‌نمایش توسعه‌دهندگان — v0.2.0.** در ۱۳ نوامبر ۲۰۲۶، همهٔ **۶۲ تست خودکار** نسخهٔ جدید Shelf و تگ‌های رنگی موفق شدند و خروجی Universal برای Apple Silicon و Intel ساخته شد. تست مجوز Accessibility، Paste واقعی و چندمانیتوره روی مک کاربر همچنان باقی است. این نسخه هنوز تأییدیهٔ انتشار عمومی ندارد.
 
 ## تصاویر محیط برنامه
 
@@ -44,7 +44,7 @@ Clipboard یک برنامهٔ Menu Bar است که دو رابط مستقل دا
 
 ## دانلود و نصب
 
-نسخهٔ تأییدشده در [GitHub Actions Run #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43463188294) قرار دارد.
+نسخهٔ تأییدشده در [GitHub Actions Run #43424718936](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781) قرار دارد.
 
 ۱. در قسمت **Artifacts** فایل **Clipboard-macOS-unsigned** را دانلود کنید. برای دسترسی ممکن است ورود به GitHub لازم باشد. فایل‌ها فعلاً بعد از **۱۴ روز** منقضی می‌شوند.
 
@@ -141,3 +141,6 @@ Clipboard یک پروژهٔ مستقل است و وابستگی رسمی به Ap
 ## امضای برنامه و مجوز macOS
 
 نسخه‌های قبلی GitHub کاملاً **بدون امضا** ساخته می‌شدند. به همین دلیل ممکن بود با وجود فعال‌بودن Accessibility، خودِ برنامه `AX=false EVENT=false` گزارش کند. نسخه جدید پس از ساخت با **Ad-hoc Code Signing** امضا می‌شود و CI اعتبار امضا و شناسه `dev.clipboard.app` را بررسی می‌کند. این امضا **Developer ID یا Notarization نیست** و با هر Build تغییر می‌کند؛ بنابراین مجوز نسخه قبلی ممکن است با نسخه جدید معتبر نباشد. پس از نصب نسخه جدید در `/Applications/Clipboard.app`، فقط مجوز مربوط به Clipboard را Reset و دوباره اعطا کنید. دستورها و مراحل دقیق در [راهنمای TCC](docs/TCC_SIGNING.md) آمده است. در **Settings → Paste Diagnostics → Refresh TCC & Signing Status** می‌توانید امضای نسخه فعلی و نتیجه واقعی بررسی مجوزها را ببینید. بعد از تأیید مجوز، Paste باید روی مک آزمایش شود؛ Build موفق به‌تنهایی اثبات عملکرد آن نیست.
+
+
+**آخرین Build امضاشده (۱۳ نوامبر ۲۰۲۶):** [GitHub Actions #43498945781](https://github.com/SaeedTqpy/Clipboard/actions/runs/43498945781)، تمام **۶۲ تست** موفق شدند. نسخه Universal در Artifact با نام `Clipboard-macOS-adhoc` است. صحت امضای Ad-hoc و Designated Requirement در CI بررسی شد؛ مجوز مؤثر روی مک و Paste واقعی همچنان باید روی دستگاه تست شوند.

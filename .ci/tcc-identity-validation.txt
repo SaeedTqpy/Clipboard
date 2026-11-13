@@ -1,1 +1,0 @@
-One combined macOS XcodeGen compile, 62 tests, icon verify, ad-hoc sign, designated requirement and universal ZIP.
