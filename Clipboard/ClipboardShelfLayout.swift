@@ -1,26 +1,35 @@
 import AppKit
 
-/// A bottom-attached shelf rather than a free-floating dialog.
-/// Geometry uses the chosen display's visibleFrame so it stays above the Dock.
+/// Full-width shelf physically flush with the screen edge.
+/// The visible screen rectangle protects controls from the Dock, but does not
+/// determine the shelf's bottom position.
 enum ClipboardShelfLayout {
-    static func frame(in available: CGRect) -> CGRect {
-        let horizontalInset: CGFloat = available.width < 650 ? 9 : 17
-        let bottomInset: CGFloat = available.height < 600 ? 6 : 12
-        let height = min(380, min(available.height - bottomInset - 6,
-                                  max(290, available.height * 0.43)))
+    static func frame(in screenFrame: CGRect, visibleFrame: CGRect) -> CGRect {
+        let safeBottom = bottomContentInset(
+            screenFrame: screenFrame, visibleFrame: visibleFrame
+        )
+        let height = max(
+            260,
+            min(screenFrame.height - 60, 375 + safeBottom)
+        )
         return CGRect(
-            x: available.minX + horizontalInset,
-            y: available.minY + bottomInset,
-            width: max(300, available.width - 2 * horizontalInset),
-            height: max(230, height)
+            x: screenFrame.minX,
+            y: screenFrame.minY,
+            width: screenFrame.width,
+            height: height
         )
     }
 
-    /// Initial frame is below the physical screen—not merely behind the Dock.
+    /// Amount of UI padding inside the shelf to avoid the bottom Dock.
+    static func bottomContentInset(screenFrame: CGRect, visibleFrame: CGRect) -> CGFloat {
+        max(0, min(160, visibleFrame.minY - screenFrame.minY))
+    }
+
+    /// The entire shelf begins below the physical display before sliding up.
     static func hiddenFrame(for target: CGRect, displayFrame: CGRect) -> CGRect {
         CGRect(
             x: target.minX,
-            y: displayFrame.minY - target.height - 28,
+            y: displayFrame.minY - target.height - 4,
             width: target.width,
             height: target.height
         )
