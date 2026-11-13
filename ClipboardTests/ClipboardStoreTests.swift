@@ -7,7 +7,7 @@ final class ClipboardStoreTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("ClipboardTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return (try ClipboardStore(directoryOverride: directory), directory)
+        return (try ClipboardStore(directoryOverride: directory, testKey: Data(repeating: 0x42, count: 32)), directory)
     }
 
     func testTextSavedAndSearchedWithoutTouchingRealHistory() throws {
@@ -87,5 +87,39 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(
             at: store.assetsDirectory, includingPropertiesForKeys: nil
         ).isEmpty)
+    }
+
+    func testEncryptedStoreDoesNotPersistTextInDatabaseFile() throws {
+        let (store, root) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let secret = "SUPER-SENSITIVE-CLIPBOARD-TOKEN-4250"
+        try store.save(ClipPayload(kind: .text, preview: secret, body: secret), sourceApp: "Notes")
+        XCTAssertEqual(try store.items(search: "SENSITIVE").count, 1)
+        let databaseURL = root.appendingPathComponent("Clipboard/history.sqlite3")
+        let databaseBytes = try Data(contentsOf: databaseURL)
+        XCTAssertNil(databaseBytes.range(of: Data(secret.utf8)))
+        XCTAssertEqual(try store.items(search: "4250").count, 1)
+    }
+
+    func testPortableEncryptedBackupRestoresCollectionsAndPins() throws {
+        let (source, sourceRoot) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: sourceRoot) }
+        try source.save(ClipPayload(kind: .text, preview: "Archive", body: "Very private"), sourceApp: "Notes")
+        let original = try XCTUnwrap(source.items(search: "").first)
+        try source.setPinned(true, id: original.id)
+        try source.setCollection("Work", id: original.id)
+        let archive = try source.exportBackup(password: "strong back up password")
+
+        let (target, targetRoot) = try temporaryStore()
+        defer { try? FileManager.default.removeItem(at: targetRoot) }
+        try target.importBackup(archive, password: "strong back up password")
+        let restored = try XCTUnwrap(target.items(search: "").first)
+        XCTAssertEqual(restored.body, "Very private")
+        XCTAssertTrue(restored.pinned)
+        XCTAssertEqual(restored.collection, "Work")
+        XCTAssertThrowsError(
+            try target.importBackup(archive, password: "incorrect password")
+        )
+        XCTAssertEqual(try target.items(search: "").count, 1)
     }
 }

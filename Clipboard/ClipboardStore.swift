@@ -47,6 +47,7 @@ final class ClipboardStore {
     private let vault: ClipboardVault
     private let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     private var writesSinceMaintenance = 0
+    private var decryptedCache: [(item: ClipItem, record: SealedClipContent)]?
     let assetsDirectory: URL
 
     /// Inject testKey and an isolated directory for tests; production uses the login Keychain.
@@ -151,6 +152,9 @@ final class ClipboardStore {
     private func migrateLegacyIfNeeded() throws {
         guard try hasLegacyTable() else {
             try execute("PRAGMA user_version=3;")
+            // Complete cleanup if a previous launch migrated SQLite but was
+            // interrupted before deleting legacy plaintext assets.
+            try removeLegacyPNGAssets()
             return
         }
 
@@ -235,9 +239,14 @@ final class ClipboardStore {
         try execute("PRAGMA wal_checkpoint(TRUNCATE);")
         try execute("VACUUM;")
         try execute("PRAGMA wal_checkpoint(TRUNCATE);")
-        for url in try FileManager.default.contentsOfDirectory(
+        try removeLegacyPNGAssets()
+    }
+
+    private func removeLegacyPNGAssets() throws {
+        let urls = try FileManager.default.contentsOfDirectory(
             at: assetsDirectory, includingPropertiesForKeys: nil
-        ) where url.pathExtension.lowercased() == "png" {
+        )
+        for url in urls where url.pathExtension.lowercased() == "png" {
             try FileManager.default.removeItem(at: url)
         }
     }
@@ -306,6 +315,7 @@ final class ClipboardStore {
             bind(sealed, to: 5, in: stmt)
             try stepDone(stmt)
         }
+        decryptedCache = nil
     }
 
     private func storeImage(_ bytes: Data, fingerprint: String) throws -> String {
@@ -372,6 +382,7 @@ final class ClipboardStore {
     }
 
     private func allRows() throws -> [(item: ClipItem, record: SealedClipContent)] {
+        if let cached = decryptedCache { return cached }
         let stmt = try prepare("""
             SELECT id,fingerprint,created_at,pinned,sealed FROM secure_clips
             ORDER BY pinned DESC, created_at DESC;
@@ -380,7 +391,18 @@ final class ClipboardStore {
         var rows: [(item: ClipItem, record: SealedClipContent)] = []
         while true {
             let status = sqlite3_step(stmt)
-            if status == SQLITE_DONE { return rows }
+            if status == SQLITE_DONE {
+                // Keep small-to-medium decoded histories hot; limit memory retained by the UI.
+                let footprint = rows.reduce(0) { total, value in
+                    total + value.item.preview.utf8.count
+                        + (value.item.body?.utf8.count ?? 0)
+                        + (value.item.filePath?.utf8.count ?? 0)
+                }
+                if footprint <= 32 * 1024 * 1024 {
+                    decryptedCache = rows
+                }
+                return rows
+            }
             guard status == SQLITE_ROW else { throw sqliteError() }
             rows.append(try unpackRow(stmt))
         }
@@ -446,6 +468,7 @@ final class ClipboardStore {
         bind(try seal(record, id: id), to: 1, in: update)
         bind(id, to: 2, in: update)
         try stepDone(update)
+        decryptedCache = nil
     }
 
     func setPinned(_ pinned: Bool, id: String) throws {
@@ -454,6 +477,7 @@ final class ClipboardStore {
         sqlite3_bind_int(stmt, 1, pinned ? 1 : 0)
         bind(id, to: 2, in: stmt)
         try stepDone(stmt)
+        decryptedCache = nil
     }
 
     func delete(id: String) throws {
@@ -461,11 +485,13 @@ final class ClipboardStore {
         defer { sqlite3_finalize(stmt) }
         bind(id, to: 1, in: stmt)
         try stepDone(stmt)
+        decryptedCache = nil
         try removeUnreferencedAssets()
     }
 
     func clearAll() throws {
         try execute("DELETE FROM secure_clips;")
+        decryptedCache = nil
         try removeUnreferencedAssets()
         try execute("VACUUM;")
         try execute("PRAGMA wal_checkpoint(TRUNCATE);")
@@ -492,6 +518,7 @@ final class ClipboardStore {
     }
 
     func prune(maxUnpinnedImageBytes: Int64 = 512 * 1024 * 1024) throws {
+        decryptedCache = nil
         let expiry = Date().addingTimeInterval(
             -Double(ClipboardPreferences.retentionDays) * 86_400
         ).timeIntervalSince1970
@@ -586,6 +613,7 @@ final class ClipboardStore {
         }
         try execute("BEGIN IMMEDIATE;")
         do {
+            decryptedCache = nil
             for entry in doc.entries {
                 guard let kind = ClipKind(rawValue: entry.content.kind) else {
                     throw ClipboardStoreError.invalidArchive
