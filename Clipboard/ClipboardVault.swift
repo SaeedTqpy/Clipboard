@@ -24,7 +24,7 @@ enum ClipboardVaultError: LocalizedError {
 
 /// The Keychain-held 256-bit master key never leaves this device.
 /// Test instances use an explicitly injected key instead of touching the user's Keychain.
-struct ClipboardVault {
+struct ClipboardVault: Sendable {
     private let master: SymmetricKey
     private static let service = "dev.clipboard.app.local-history.v1"
     private static let account = "aes-gcm-master-key"

@@ -478,6 +478,13 @@ final class ClipboardStore {
         return assetsDirectory.appendingPathComponent(filename)
     }
 
+    func thumbnailSource(for item: ClipItem) -> ClipboardThumbnailSource? {
+        guard let url = assetURL(for: item) else { return nil }
+        return ClipboardThumbnailSource(
+            url: url, fingerprint: item.fingerprint, vault: vault
+        )
+    }
+
     func imageData(for item: ClipItem) throws -> Data? {
         guard let url = assetURL(for: item) else { return nil }
         let data = try Data(contentsOf: url)

@@ -189,8 +189,8 @@ final class ClipboardModel: ObservableObject {
                 success = false
             }
         case .image:
-            if let url = store?.assetURL(for: item),
-               let image = NSImage(contentsOf: url) {
+            if let raw = try? store?.imageData(for: item),
+               let image = NSImage(data: raw) {
                 success = board.writeObjects([image])
             } else {
                 success = false
@@ -201,7 +201,36 @@ final class ClipboardModel: ObservableObject {
         return success
     }
 
-    func assetURL(for item: ClipItem) -> URL? {
-        store?.assetURL(for: item)
+    func thumbnailSource(for item: ClipItem) -> ClipboardThumbnailSource? {
+        store?.thumbnailSource(for: item)
+    }
+
+    func exportEncryptedBackup(password: String, to url: URL) {
+        do {
+            guard let store else {
+                message = "History database is not available."
+                return
+            }
+            let encrypted = try store.exportBackup(password: password)
+            try encrypted.write(to: url, options: .atomic)
+            message = "Encrypted backup exported."
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    func importEncryptedBackup(from url: URL, password: String) {
+        do {
+            guard let store else {
+                message = "History database is not available."
+                return
+            }
+            let file = try Data(contentsOf: url)
+            try store.importBackup(file, password: password)
+            reload()
+            message = "Encrypted backup imported."
+        } catch {
+            message = error.localizedDescription
+        }
     }
 }

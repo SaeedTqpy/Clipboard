@@ -135,7 +135,7 @@ struct ClipboardPanelView: View {
                         ForEach(model.clips) { item in
                             ClipCard(
                                 item: item,
-                                assetURL: model.assetURL(for: item),
+                                thumbnailSource: model.thumbnailSource(for: item),
                                 onCopy: { _ = model.copy(item) },
                                 onPaste: { onPaste(item) },
                                 onPin: { model.togglePinned(item) },
@@ -236,7 +236,7 @@ struct ClipboardPanelView: View {
 
 private struct ClipCard: View {
     let item: ClipItem
-    let assetURL: URL?
+    let thumbnailSource: ClipboardThumbnailSource?
     let onCopy: () -> Void
     let onPaste: () -> Void
     let onPin: () -> Void
@@ -268,12 +268,8 @@ private struct ClipCard: View {
             .font(.system(size: 12))
 
             Group {
-                if item.kind == .image, let assetURL,
-                   let image = NSImage(contentsOf: assetURL) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .accessibilityLabel("Copied image preview")
-                        .scaledToFit()
+                if item.kind == .image {
+                    ClipboardThumbnailView(source: thumbnailSource)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     Text(item.preview)

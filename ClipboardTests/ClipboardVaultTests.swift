@@ -8,7 +8,7 @@ final class ClipboardVaultTests: XCTestCase {
         let input = Data("secret copied text".utf8)
         let ciphertext = try vault.seal(input, context: "clip:abc")
         XCTAssertNotEqual(ciphertext, input)
-        XCTAssertFalse(ciphertext.contains(Data("secret".utf8)))
+        XCTAssertNil(ciphertext.range(of: Data("secret".utf8)))
         XCTAssertEqual(try vault.open(ciphertext, context: "clip:abc"), input)
         XCTAssertThrowsError(try vault.open(ciphertext, context: "clip:different"))
     }
