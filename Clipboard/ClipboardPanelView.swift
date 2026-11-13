@@ -318,6 +318,20 @@ struct ClipboardPanelView: View {
             .font(.system(size: 10, weight: .medium))
             .foregroundStyle(.tertiary)
 
+            if model.pasteDiagnostic != "P0 · No paste attempted since launch." {
+                HStack(spacing: 7) {
+                    Image(systemName: "waveform.path.ecg")
+                    Text(model.pasteDiagnostic)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Button("Copy diagnostics") { model.copyPasteDiagnostic() }
+                        .buttonStyle(.link)
+                }
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .help("Last paste stage only; clipboard contents are not included")
+            }
+
             if let message = model.message {
                 HStack(spacing: 8) {
                     Image(systemName: "info.circle")
@@ -808,6 +822,24 @@ struct ClipboardSettingsView: View {
                     set: { model.setLaunchAtLogin($0) }
                 ))
                 Text("macOS may ask for approval under System Settings → General → Login Items. Unsigned development builds may not register successfully.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Paste Diagnostics") {
+                Text(model.pasteDiagnostic)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                HStack {
+                    Button("Copy Paste Diagnostics") { model.copyPasteDiagnostic() }
+                    Button("Request Accessibility Permission") {
+                        let options = [
+                            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+                        ] as CFDictionary
+                        _ = AXIsProcessTrustedWithOptions(options)
+                        _ = CGRequestPostEventAccess()
+                    }
+                }
+                Text("Shows where the last paste attempt stopped. Diagnostics contain no copied text or images. A sent Command+V is not proof that the target accepted it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

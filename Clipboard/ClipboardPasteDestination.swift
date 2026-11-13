@@ -24,4 +24,13 @@ enum ClipboardPasteDestination {
         targetPID != ownPID &&
         frontmostPID == targetPID
     }
+
+    /// Allow app activation to settle before sending an actual session shortcut.
+    /// Never resend after a successful dispatch; blindly retrying duplicates text.
+    static let maximumActivationAttempts = 12
+    static let activationRetryInterval: TimeInterval = 0.085
+
+    static func mayRetryActivation(after attempt: Int) -> Bool {
+        attempt < maximumActivationAttempts
+    }
 }

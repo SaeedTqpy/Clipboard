@@ -26,6 +26,8 @@ final class ClipboardModel: ObservableObject {
     @Published private(set) var pasteStack: [ClipItem] = []
     @Published private(set) var isPaused: Bool
     @Published var message: String?
+    /// In-memory diagnostics contain stages/permission flags only, never clip contents.
+    @Published private(set) var pasteDiagnostic = "P0 · No paste attempted since launch."
     @Published private(set) var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     @Published var captureImages: Bool {
         didSet { UserDefaults.standard.set(captureImages, forKey: ClipboardPreferences.imagesKey) }
@@ -170,6 +172,22 @@ final class ClipboardModel: ObservableObject {
         }
         hotkeyPreset = preset
         UserDefaults.standard.set(preset.rawValue, forKey: ClipboardPreferences.hotkeyKey)
+    }
+
+    func updatePasteDiagnostic(_ stage: String, target: String? = nil) {
+        // No clipboard text, URLs, image bytes or filesystem paths in diagnostics.
+        let targetName = target?.prefix(80) ?? "unknown app"
+        pasteDiagnostic = "\(stage) · Target: \(targetName)"
+    }
+
+    func copyPasteDiagnostic() {
+        let board = NSPasteboard.general
+        board.clearContents()
+        _ = board.setString(
+            "Clipboard Paste Diagnostic\n\(pasteDiagnostic)\nAccessibility: \(AXIsProcessTrusted())\nEvent posting: \(CGPreflightPostEventAccess())",
+            forType: .string
+        )
+        onClipboardWrite?()
     }
 
     func togglePaused() {

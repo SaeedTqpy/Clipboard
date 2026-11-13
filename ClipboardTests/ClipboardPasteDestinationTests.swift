@@ -26,6 +26,20 @@ final class ClipboardPasteDestinationTests: XCTestCase {
         ))
     }
 
+    func testActivationRetryHasHardBoundAndNeverInfinitelyPosts() {
+        XCTAssertTrue(ClipboardPasteDestination.mayRetryActivation(after: 0))
+        XCTAssertTrue(ClipboardPasteDestination.mayRetryActivation(after: 11))
+        XCTAssertFalse(ClipboardPasteDestination.mayRetryActivation(after: 12))
+        XCTAssertFalse(ClipboardPasteDestination.mayRetryActivation(after: 50))
+        XCTAssertGreaterThan(ClipboardPasteDestination.activationRetryInterval, 0)
+    }
+
+    func testNeverDispatchesToNewForegroundApplication() {
+        XCTAssertFalse(ClipboardPasteDestination.mayPost(
+            targetPID: 1234, frontmostPID: 4321, ownPID: 99
+        ))
+    }
+
     func testOnlyPostsWhenRememberedTargetIsForeground() {
         XCTAssertTrue(ClipboardPasteDestination.mayPost(
             targetPID: 321, frontmostPID: 321, ownPID: 500

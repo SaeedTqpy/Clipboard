@@ -482,88 +482,120 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         asPlainText: Bool = false,
         onPosted: (() -> Void)? = nil
     ) {
-        // The selected target is frozen when the shelf opens. Never rediscover
-        // the target after a click, when Clipboard itself can be key/frontmost.
-        guard let target = previousApp, !target.isTerminated,
-              target.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            model.message = "No paste destination. Click inside an editable field in Notes, Safari or your editor, then open Clipboard again."
-            return
-        }
+        // A click in the Quick Shelf must reach this method regardless of the
+        // target's TCC state. Keep the diagnostics independent of clip content.
+        let target = previousApp
+        let targetName = target?.localizedName ?? "unknown app"
+        model.message = nil
+        model.updatePasteDiagnostic("P1 · Card click received", target: targetName)
+
         let copied = asPlainText ? model.copyAsPlainText(item) : model.copy(item)
-        guard copied else { return }
+        guard copied else {
+            model.updatePasteDiagnostic("E1 · Could not copy clip", target: targetName)
+            return
+        }
+        model.updatePasteDiagnostic("P2 · Clipboard write succeeded", target: targetName)
 
-        // AX alone does not guarantee permission to post synthesized events.
-        // Without permission the old implementation silently copied and
-        // dismissed: users understandably perceived it as a broken Paste.
-        guard AXIsProcessTrusted(), CGPreflightPostEventAccess() else {
-            let options = [
-                kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
-            ] as CFDictionary
-            _ = AXIsProcessTrustedWithOptions(options)
-            _ = CGRequestPostEventAccess()
-            model.message = "Copied but not pasted. Allow Clipboard in System Settings → Privacy & Security → Accessibility, then quit and reopen Clipboard. Click Paste again."
-            // Stay visible so this actionable reason is not hidden in a closed shelf.
+        guard let target, !target.isTerminated,
+              target.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
+            model.message = "Copied, but no destination is available. Focus a text field before opening the Quick Shelf, then try again."
+            model.updatePasteDiagnostic("E2 · No valid destination", target: targetName)
             return
         }
 
-        // Release every Clipboard key window before attempting to restore
-        // keyboard focus. The manager can otherwise retain the key window.
+        let accessibility = AXIsProcessTrusted()
+        let posting = CGPreflightPostEventAccess()
+        guard accessibility && posting else {
+            if !accessibility {
+                let options = [
+                    kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+                ] as CFDictionary
+                _ = AXIsProcessTrustedWithOptions(options)
+            }
+            if !posting { _ = CGRequestPostEventAccess() }
+            model.message = "Copied but not pasted. macOS permission check: Accessibility \(accessibility ? "OK" : "DENIED"), Event Posting \(posting ? "OK" : "DENIED"). Enable Clipboard in Accessibility, then fully quit/reopen the app. See Paste Diagnostics in Settings."
+            model.updatePasteDiagnostic(
+                "E3 · Permissions AX=\(accessibility) EVENT=\(posting)",
+                target: targetName
+            )
+            // Do not close on an actionable error: the previous build hid it.
+            return
+        }
+
+        // The source application does not necessarily lose activation when a
+        // nonactivating NSPanel gets key focus. It must nevertheless become
+        // the actual key recipient again before a global Cmd+V is posted.
         hidePanelImmediately()
         managementWindow?.orderOut(nil)
         pasteRequestID &+= 1
         let requestID = pasteRequestID
         let pid = target.processIdentifier
+        model.updatePasteDiagnostic("P3 · Restoring destination focus", target: targetName)
 
-        // Modern macOS cooperative activation. The user explicitly requested
-        // pasting into the app they used before opening Clipboard.
         if !target.isActive {
-            NSApp.yieldActivation(to: target)
-        }
-        if !target.isActive, !target.activate(options: []) {
-            model.message = "Copied, but macOS refused to activate \(target.localizedName ?? "the destination"). Paste manually with ⌘V."
-            return
+            _ = target.activate(options: [.activateIgnoringOtherApps])
         }
 
-        func deliver(_ attempt: Int) {
-            guard requestID == pasteRequestID, !target.isTerminated else { return }
+        func deliver(attempt: Int) {
+            guard requestID == pasteRequestID, !target.isTerminated else {
+                model.updatePasteDiagnostic("E4 · Destination changed or quit", target: targetName)
+                return
+            }
             let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
-            if !ClipboardPasteDestination.mayPost(
-                targetPID: pid, frontmostPID: frontmost,
+            guard ClipboardPasteDestination.mayPost(
+                targetPID: pid,
+                frontmostPID: frontmost,
                 ownPID: ProcessInfo.processInfo.processIdentifier
-            ) {
-                if attempt < 6 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
-                        deliver(attempt + 1)
-                    }
-                } else {
-                    model.message = "Copied, but focus did not return to \(target.localizedName ?? "the destination"). Press ⌘V manually. Click in a text field before opening the shelf."
+            ) else {
+                guard ClipboardPasteDestination.mayRetryActivation(after: attempt) else {
+                    model.message = "Copied but focus was not restored to \(targetName). Click the destination text field and press ⌘V manually. Check Paste Diagnostics."
+                    model.updatePasteDiagnostic("E5 · Focus timeout", target: targetName)
+                    return
                 }
+                if attempt == 3 && !target.isActive {
+                    _ = target.activate(options: [.activateIgnoringOtherApps])
+                }
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + ClipboardPasteDestination.activationRetryInterval
+                ) { deliver(attempt: attempt + 1) }
                 return
             }
 
-            let source = CGEventSource(stateID: .hidSystemState)
+            // This must be a session keyboard shortcut, not postToPid. Many
+            // apps dispatch Command-V via their frontmost menu/key window;
+            // PID-directed events may not trigger that standard path.
+            let source = CGEventSource(stateID: .privateState)
             guard let down = CGEvent(
-                      keyboardEventSource: source,
-                      virtualKey: UInt16(kVK_ANSI_V), keyDown: true
-                  ), let up = CGEvent(
-                      keyboardEventSource: source,
-                      virtualKey: UInt16(kVK_ANSI_V), keyDown: false
-                  ) else {
-                model.message = "Copied, but macOS could not create a Paste keyboard event."
+                keyboardEventSource: source,
+                virtualKey: UInt16(kVK_ANSI_V),
+                keyDown: true
+            ), let up = CGEvent(
+                keyboardEventSource: source,
+                virtualKey: UInt16(kVK_ANSI_V),
+                keyDown: false
+            ) else {
+                model.message = "Copied, but macOS could not create the Paste keystroke."
+                model.updatePasteDiagnostic("E6 · Event creation failed", target: targetName)
                 return
             }
             down.flags = .maskCommand
             up.flags = .maskCommand
 
-            // Deliver to the remembered process rather than the HID tap.
-            // A nonactivating NSPanel may temporarily be key even when
-            // NSWorkspace still reports the previous app as frontmost.
-            down.postToPid(pid)
-            up.postToPid(pid)
+            // A single dispatch—never blindly resend, since event posting
+            // has no success acknowledgment and repeats could duplicate text.
+            down.post(tap: .cghidEventTap)
+            up.post(tap: .cghidEventTap)
+            model.updatePasteDiagnostic(
+                "P4 · Command-V dispatched (insertion unverified)",
+                target: targetName
+            )
             onPosted?()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            deliver(0)
+
+        // Give AppKit one run-loop turn to remove the key panel, even when the
+        // previous app remained NSWorkspace's frontmost app the whole time.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+            deliver(attempt: 0)
         }
     }
 
