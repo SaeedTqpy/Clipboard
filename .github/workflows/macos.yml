@@ -4,11 +4,6 @@ name: Clipboard macOS
 # Use Actions > Clipboard macOS > Run workflow when validation is required.
 on:
   workflow_dispatch:
-  # One specifically scoped final validation; remove after the trigger commit.
-  push:
-    branches: [main]
-    paths:
-      - ".ci/verify-manager-and-shelf.txt"
 
 concurrency:
   group: clipboard-manual-build
