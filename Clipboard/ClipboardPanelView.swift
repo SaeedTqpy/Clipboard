@@ -15,6 +15,8 @@ struct ClipboardPanelView: View {
     @State private var showingCollectionAlert = false
     @State private var newCollectionName = ""
     @State private var newCollectionItem: ClipItem?
+    @State private var editingClip: ClipItem?
+    @State private var creatingSnippet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -40,6 +42,17 @@ struct ClipboardPanelView: View {
                 .padding(.horizontal, 12)
                 .frame(height: 36)
                 .liquidToolbar()
+
+                Button {
+                    creatingSnippet = true
+                } label: {
+                    Image(systemName: "plus.square.on.square")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .liquidToolbar()
+                .help("Create a reusable snippet")
 
                 Button {
                     showingSettings = true
@@ -79,13 +92,31 @@ struct ClipboardPanelView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(model.pinnedOnly ? .primary : .secondary)
                 Menu {
-                    Button("All Types") { model.selectedKind = nil }
-                    Divider()
+                    Button("All Content Types") { model.selectedKind = nil }
                     ForEach(ClipKind.allCases, id: \.self) { kind in
                         Button(kind.title) { model.selectedKind = kind }
                     }
+                    Divider()
+                    Menu("Source Application") {
+                        Button("All Applications") { model.selectedSourceApp = nil }
+                        ForEach(model.sourceApps, id: \.self) { app in
+                            Button(app) { model.selectedSourceApp = app }
+                        }
+                    }
+                    Menu("Date") {
+                        ForEach(ClipboardHistoryPeriod.allCases) { period in
+                            Button(period.rawValue) { model.historyPeriod = period }
+                        }
+                    }
+                    Button("Reset Filters") {
+                        model.selectedKind = nil
+                        model.selectedSourceApp = nil
+                        model.historyPeriod = .all
+                        model.selectedCollection = nil
+                        model.pinnedOnly = false
+                    }
                 } label: {
-                    Label(model.selectedKind?.title ?? "All Types", systemImage: "line.3.horizontal.decrease")
+                    Label(model.selectedKind?.title ?? "Filters", systemImage: "line.3.horizontal.decrease")
                 }
                 .menuStyle(.borderlessButton)
                 .frame(maxWidth: 120)
@@ -132,35 +163,57 @@ struct ClipboardPanelView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 12) {
-                        ForEach(model.clips) { item in
-                            ClipCard(
-                                item: item,
-                                thumbnailSource: model.thumbnailSource(for: item),
-                                onCopy: { _ = model.copy(item) },
-                                onPaste: { onPaste(item) },
-                                onPastePlain: { onPastePlain(item) },
-                                onPin: { model.togglePinned(item) },
-                                onQueue: { model.addToPasteStack(item) },
-                                onDelete: { model.delete(item) },
-                                collections: model.collections,
-                                onMove: { name in model.move(item, toCollection: name) },
-                                onNewCollection: {
-                                    newCollectionItem = item
-                                    newCollectionName = ""
-                                    showingCollectionAlert = true
-                                }
-                            )
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 12) {
+                            ForEach(model.clips) { item in
+                                ClipCard(
+                                    item: item,
+                                    isSelected: item.id == model.selectedClipID,
+                                    thumbnailSource: model.thumbnailSource(for: item),
+                                    onCopy: { _ = model.copy(item) },
+                                    onPaste: { onPaste(item) },
+                                    onPastePlain: { onPastePlain(item) },
+                                    onPin: { model.togglePinned(item) },
+                                    onQueue: { model.addToPasteStack(item) },
+                                    onDelete: { model.delete(item) },
+                                    onEdit: { editingClip = item },
+                                    onSaveSnippet: {
+                                        model.saveAsSnippet(
+                                            item, title: item.displayName ?? item.preview
+                                        )
+                                    },
+                                    onCopyRecognizedText: {
+                                        model.copyRecognizedText(item)
+                                    },
+                                    onSelect: { model.selectedClipID = item.id },
+                                    collections: model.collections,
+                                    onMove: { name in model.move(item, toCollection: name) },
+                                    onNewCollection: {
+                                        newCollectionItem = item
+                                        newCollectionName = ""
+                                        showingCollectionAlert = true
+                                    }
+                                )
+                                .id(item.id)
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                    .scrollIndicators(.hidden)
+                    .onChange(of: model.selectedClipID) { _, id in
+                        if let id {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                scrollProxy.scrollTo(id, anchor: .center)
+                            }
                         }
                     }
-                    .padding(.vertical, 5)
                 }
-                .scrollIndicators(.hidden)
             }
 
             HStack {
-                Label("⌘⇧V to open · ⌘1…9 to paste", systemImage: "keyboard")
+                Label("↑↓ select · ↵ paste · ⌥↵ plain · ⌘1…9 quick",
+                      systemImage: "keyboard")
                 Spacer()
                 Text("\(model.clips.count) clips")
                 Spacer()
@@ -222,6 +275,16 @@ struct ClipboardPanelView: View {
         .sheet(isPresented: $showingSettings) {
             ClipboardSettingsView(model: model)
         }
+        .sheet(item: $editingClip) { item in
+            ClipboardClipEditorView(item: item) { title, content, asSnippet in
+                model.edit(item, title: title, text: content, asSnippet: asSnippet)
+            }
+        }
+        .sheet(isPresented: $creatingSnippet) {
+            ClipboardNewSnippetView { title, content in
+                model.createSnippet(title: title, body: content)
+            }
+        }
         .alert("New Collection", isPresented: $showingCollectionAlert) {
             TextField("Collection name", text: $newCollectionName)
             Button("Create") {
@@ -239,6 +302,7 @@ struct ClipboardPanelView: View {
 
 private struct ClipCard: View {
     let item: ClipItem
+    let isSelected: Bool
     let thumbnailSource: ClipboardThumbnailSource?
     let onCopy: () -> Void
     let onPaste: () -> Void
@@ -246,6 +310,10 @@ private struct ClipCard: View {
     let onPin: () -> Void
     let onQueue: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    let onSaveSnippet: () -> Void
+    let onCopyRecognizedText: () -> Void
+    let onSelect: () -> Void
     let collections: [String]
     let onMove: (String?) -> Void
     let onNewCollection: () -> Void
@@ -255,8 +323,9 @@ private struct ClipCard: View {
             HStack(spacing: 8) {
                 Image(systemName: item.kind.symbol)
                     .foregroundStyle(.mint)
-                Text(item.kind.title)
+                Text(item.displayName ?? item.kind.title)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
                 if let collection = item.collection {
                     Text(collection)
                         .font(.system(size: 10, weight: .medium))
@@ -273,8 +342,15 @@ private struct ClipCard: View {
 
             Group {
                 if item.kind == .image {
-                    ClipboardThumbnailView(source: thumbnailSource)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 3) {
+                        ClipboardThumbnailView(source: thumbnailSource)
+                        if item.recognizedText != nil {
+                            Label("SEARCHABLE IMAGE", systemImage: "text.viewfinder")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     Text(item.preview)
                         .font(.system(size: item.kind == .link ? 13 : 14, design: .rounded))
@@ -302,6 +378,16 @@ private struct ClipCard: View {
                     .tint(.mint)
                 Spacer(minLength: 0)
                 Menu {
+                    Button("Edit / Rename…", systemImage: "pencil", action: onEdit)
+                    if [.text, .link, .richText].contains(item.kind) {
+                        Button("Save as Snippet", systemImage: "text.book.closed",
+                               action: onSaveSnippet)
+                    }
+                    if item.recognizedText != nil {
+                        Button("Copy Text from Image", systemImage: "text.viewfinder",
+                               action: onCopyRecognizedText)
+                    }
+                    Divider()
                     Button("Add to Paste Stack", action: onQueue)
                     if [.richText, .text, .link].contains(item.kind) {
                         Button("Paste as Plain Text", action: onPastePlain)
@@ -332,11 +418,20 @@ private struct ClipCard: View {
         }
         .padding(14)
         .frame(width: 242, height: 257)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.90), in: RoundedRectangle(cornerRadius: 17))
+        .background(
+            isSelected ? Color.accentColor.opacity(0.17) :
+                Color(nsColor: .controlBackgroundColor).opacity(0.90),
+            in: RoundedRectangle(cornerRadius: 17)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: 17)
-                .strokeBorder(.white.opacity(0.07), lineWidth: 1)
+                .strokeBorder(
+                    isSelected ? Color.accentColor.opacity(0.9) : .white.opacity(0.07),
+                    lineWidth: isSelected ? 2 : 1
+                )
         }
+        .contentShape(RoundedRectangle(cornerRadius: 17))
+        .onTapGesture(perform: onSelect)
     }
 }
 
@@ -379,7 +474,7 @@ struct ClipboardSettingsView: View {
                     get: { model.isPaused },
                     set: { _ in model.togglePaused() }
                 ))
-                Text("Clipboard history is stored locally, without at-rest encryption. Password-manager and private pasteboard exclusions are best-effort, not a guarantee.")
+                Text("Clipboard history is encrypted on this Mac with a Keychain-backed key. Secret and password-manager exclusions are best-effort, not a guarantee.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 Text("Ignore these app bundle IDs (one per line):")
@@ -409,6 +504,10 @@ struct ClipboardSettingsView: View {
             Section("Capture") {
                 Toggle("Save images", isOn: $model.captureImages)
                 Toggle("Save files and file selections", isOn: $model.captureFiles)
+                Toggle("Recognize text inside images (on-device OCR)", isOn: $model.recognizeImages)
+                Text("Image recognition runs locally using Apple's Vision framework. It may use extra CPU and battery power.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("Copied text and links are always captured while monitoring is on. Image and file capture can be turned off.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
