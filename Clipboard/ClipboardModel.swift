@@ -7,7 +7,7 @@ final class ClipboardModel: ObservableObject {
     static let shared = ClipboardModel()
 
     @Published private(set) var clips: [ClipItem] = []
-    @Published var searchText = "" { didSet { reload() } }
+    @Published var searchText = ""
     @Published var panelPresentationID = 0
     @Published var settingsPresentationID = 0
     @Published var pinnedOnly = false { didSet { reload() } }
@@ -40,6 +40,7 @@ final class ClipboardModel: ObservableObject {
         }
     }
 
+    private var cancellables = Set<AnyCancellable>()
     var onClipboardWrite: (() -> Void)?
     var onMonitoringChange: ((Bool) -> Void)?
     private var store: ClipboardStore?
@@ -63,6 +64,11 @@ final class ClipboardModel: ObservableObject {
             store = nil
             message = error.localizedDescription
         }
+        $searchText
+            .removeDuplicates()
+            .debounce(for: .milliseconds(180), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.reload() }
+            .store(in: &cancellables)
         reload()
     }
 

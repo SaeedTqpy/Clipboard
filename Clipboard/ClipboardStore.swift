@@ -49,6 +49,7 @@ final class ClipboardStore {
     private let vault: ClipboardVault
     private let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     private var writesSinceMaintenance = 0
+    private var lastMaintenanceTime = Date.distantPast
     private var decryptedCache: [(item: ClipItem, record: SealedClipContent)]?
     let assetsDirectory: URL
 
@@ -257,9 +258,12 @@ final class ClipboardStore {
     func save(_ payload: ClipPayload, sourceApp: String) throws {
         try saveInternal(payload, sourceApp: sourceApp, createdAt: Date().timeIntervalSince1970)
         writesSinceMaintenance += 1
-        if writesSinceMaintenance >= 20 {
+        // Batch directory scans and cleanup to reduce per-copy main-thread work.
+        if writesSinceMaintenance >= 50
+            || Date().timeIntervalSince(lastMaintenanceTime) >= 300 {
             try prune()
             writesSinceMaintenance = 0
+            lastMaintenanceTime = Date()
         }
     }
 
@@ -528,6 +532,7 @@ final class ClipboardStore {
 
     func prune(maxUnpinnedImageBytes: Int64 = 512 * 1024 * 1024) throws {
         decryptedCache = nil
+        lastMaintenanceTime = Date()
         let expiry = Date().addingTimeInterval(
             -Double(ClipboardPreferences.retentionDays) * 86_400
         ).timeIntervalSince1970
