@@ -290,12 +290,16 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
     private func capturePasteDestination() {
         let frontmost = NSWorkspace.shared.frontmostApplication
         if let frontmost { rememberExternalApplication(frontmost) }
+        // Spotlight, system overlays and accessory processes are not usable
+        // text destinations. Prefer the last regular user application.
+        let eligibleForeground = frontmost?.activationPolicy == .regular &&
+            frontmost?.isTerminated == false ? frontmost : nil
         let pid = ClipboardPasteDestination.choose(
-            frontmostPID: frontmost?.processIdentifier,
+            frontmostPID: eligibleForeground?.processIdentifier,
             fallbackPID: lastExternalApp?.processIdentifier,
             ownPID: ProcessInfo.processInfo.processIdentifier
         )
-        previousApp = [frontmost, lastExternalApp].compactMap { $0 }.first {
+        previousApp = [eligibleForeground, lastExternalApp].compactMap { $0 }.first {
             $0.processIdentifier == pid && !$0.isTerminated
         }
     }
@@ -510,6 +514,11 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         let requestID = pasteRequestID
         let pid = target.processIdentifier
 
+        // Modern macOS cooperative activation. The user explicitly requested
+        // pasting into the app they used before opening Clipboard.
+        if !target.isActive {
+            NSApp.yieldActivation(to: target)
+        }
         if !target.isActive, !target.activate(options: []) {
             model.message = "Copied, but macOS refused to activate \(target.localizedName ?? "the destination"). Paste manually with ⌘V."
             return
