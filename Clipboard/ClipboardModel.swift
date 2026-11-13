@@ -1,4 +1,6 @@
 import AppKit
+import ApplicationServices
+import CoreGraphics
 import Combine
 import ServiceManagement
 
@@ -176,7 +178,7 @@ final class ClipboardModel: ObservableObject {
 
     func updatePasteDiagnostic(_ stage: String, target: String? = nil) {
         // No clipboard text, URLs, image bytes or filesystem paths in diagnostics.
-        let targetName = target?.prefix(80) ?? "unknown app"
+        let targetName = String((target ?? "unknown app").prefix(80))
         pasteDiagnostic = "\(stage) · Target: \(targetName)"
     }
 
