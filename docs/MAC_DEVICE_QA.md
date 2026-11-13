@@ -55,7 +55,7 @@ and a redacted Console excerpt. Hardware observations require user-provided evid
 5. Reopen the Shelf. If the insertion did not happen, inspect the `P1/P2/P3/P4/E2/E3/E5/E6` stage; copy diagnostics from Settings. This is essential because permission approval alone cannot prove the target received the event.
 6. Repeat in Safari text fields and VS Code, including an ordinary editable field rather than a protected password field.
 7. Verify pressing Copy has no insertion side effect and menu actions do not invoke the main card Paste action.
-8. Revoke Accessibility or Event Posting and confirm `E3` is shown **without closing** the Shelf; then restore permissions and relaunch.
+8. Revoke PostEvent and verify `E3P` or `E3B` while Shelf remains open; regrant PostEvent and relaunch. Revoking AX alone does not block keyboard Paste when PostEvent is granted.
 9. Change to another app before the deferred dispatch and verify the destination guard prevents posting into the wrong app; no blind second attempts permitted.
 
 
@@ -64,7 +64,7 @@ and a redacted Console excerpt. Hardware observations require user-provided evid
 - [ ] Check `codesign --verify --strict /Applications/Clipboard.app` succeeds and `codesign -dv --verbose=4 /Applications/Clipboard.app` reports `Signature=adhoc` and `Identifier=dev.clipboard.app`.
 - [ ] Ensure only one Clipboard process is running, and the actual bundle is `/Applications/Clipboard.app`, not an AppTranslocation path.
 - [ ] After replacing an old unsigned/ad-hoc binary, explicitly reset only the Clipboard Accessibility grant with `tccutil reset Accessibility dev.clipboard.app`; reauthorize the **new** binary and quit/relaunch it.
-- [ ] Settings → Paste Diagnostics → Refresh TCC & Signing Status reports `Accessibility (AX): true` and `Event Posting: true` before testing paste into Notes.
+- [ ] Settings → Paste Diagnostics → Refresh TCC & Signing Status reports `Event Posting (PostEvent): true` before testing Notes. AX is recorded independently and may be false without blocking keyboard Paste.
 - [ ] Validate that a later ad-hoc build gets a new code identity and that a previous TCC grant is *not* assumed to work across versions.
 - [ ] Never bypass TCC or disable SIP; distribution-quality persistence requires a stable Apple code signing identity.
 

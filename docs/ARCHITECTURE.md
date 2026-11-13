@@ -61,7 +61,7 @@ No Electron runtime or remote API. No analytics, outbound sync or logging of cli
 ## macOS integration
 
 - macOS 15 minimum deployment target, macOS 26 native Liquid Glass. AppKit floating NSPanel on the current pointer display and global Carbon ⌘⇧V shortcut.
-- Automatic paste requires Accessibility permission and verifies target PID immediately before posting ⌘V. Events posted are not proof of successful paste in the destination.
+- Synthetic Command-V uses the independent macOS PostEvent TCC permission, which is not equivalent to AXUIElement Accessibility authorization. Paste validates the target PID before posting. Posted events are not proof that a destination accepted them.
 - Menu Bar, settings access and optional Login Item via SMAppService. Unsigned app behavior may differ from Developer ID signed distribution.
 
 ## Remaining blockers

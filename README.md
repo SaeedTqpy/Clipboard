@@ -143,7 +143,7 @@ Clipboard is an independent project and is not affiliated with Apple.
 
 ### If clicking a card copies but does not paste
 
-On a Mac, **automatic keyboard insertion requires PostEvent permission**. Accessibility (AX) and PostEvent are separate TCC grants; AX=true does not mean PostEvent=true. Clipboard now explicitly checks PostEvent when you click a Quick Shelf card, and requests that service if missing. Keep only the newest Clipboard app in **Applications**, quit older copies, then enable Clipboard under **System Settings → Privacy & Security → Accessibility** and restart it. Clicking the preview pastes; clicking **Copy** deliberately does not. If focus cannot be restored to the previous app, Clipboard does not inject keyboard events into a different app; your clip is already copied and can be pasted manually with ⌘V. See [real-device QA](docs/MAC_DEVICE_QA.md).
+On a Mac, **automatic keyboard insertion requires PostEvent permission**. Accessibility (AX) and PostEvent are separate TCC grants; AX=true does not mean PostEvent=true. Clipboard now explicitly checks PostEvent when you click a Quick Shelf card, and requests that service if missing. Keep only the newest Clipboard app in **Applications** and quit older copies. For `AX=true EVENT=false`, reset **PostEvent**, not Accessibility, as documented below. Clicking the preview pastes; clicking **Copy** deliberately does not. If focus cannot be restored to the previous app, Clipboard does not inject keyboard events into a different app; your clip is already copied and can be pasted manually with ⌘V. See [real-device QA](docs/MAC_DEVICE_QA.md).
 
 
 ### Diagnosing a failed paste (no clipboard contents collected)

@@ -56,9 +56,9 @@ not authorize the new signed binary.
 
 4. Run **once, for this exact build**:
 
-   `tccutil reset Accessibility dev.clipboard.app`
+   `tccutil reset PostEvent dev.clipboard.app`
 
-   This is scoped to Clipboard and does not reset all app permissions.
+   This is scoped to Clipboard's keystroke-posting service. Reset Accessibility **only when AX is actually false and needed for a distinct AXUIElement feature**.
 5. Launch **the new app** from /Applications. Under System Settings →
    Privacy & Security → Accessibility, remove the stale Clipboard entry if
    shown and add/select the new `/Applications/Clipboard.app`. Enable it.
@@ -66,7 +66,7 @@ not authorize the new signed binary.
 6. Fully **Quit Clipboard and relaunch it** from /Applications (do not merely
    hide the shelf). In Settings → Paste Diagnostics press
    **Refresh TCC & Signing Status**. Confirm `Accessibility (AX): true`
-   and `Event Posting: true`.
+   and `Event Posting (PostEvent): true`. The latter is the required grant for keyboard Paste.
 7. Open Notes, place a text caret and invoke `Win+Shift+V` (mapped to
    Command+Shift+V), then click a clip. Verify a **single** insertion.
 
