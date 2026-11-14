@@ -26,6 +26,14 @@ Two purpose-built surfaces exist, and they must remain separate.
   displays, left/right/bottom Dock positions and Reduce Motion are supported.
 - Normal dismissals animate down. **Actual Paste dismisses immediately** to
   avoid a delayed focus release.
+- **Wheel ownership:** The Shelf NSPanel routes scroll-wheel events only when
+  the pointer is over the carousel viewport (including card gaps), not the
+  filter rail, search field, tags or controls. Wheel-down advances the cards,
+  wheel-up moves back; genuine horizontal trackpad gestures keep their axis,
+  precise pixel deltas and momentum. A passive AppKit viewport probe is used,
+  not a click-blocking overlay or a global event monitor. Wheel phases are
+  consumed at both ends so the underlying active app never receives them.
+  The existing paste/focus restoration flow is unchanged.
 
 ## Glass, light and material
 
@@ -103,6 +111,10 @@ state and accessible button labels. Horizontal virtualization remains a
   attention indicator and Settings → Paste Diagnostics without an intrusive
   bottom banner in the shelf.
 - [ ] Keyboard selection and Enter, Cmd+1…9, Escape, search focus still work.
+- [ ] Scroll wheel and trackpad horizontally move cards over *both* cards and
+  empty card gaps; Safari/Telegram underneath does not scroll. Native horizontal
+  trackpad gestures, scroll momentum and bounds behave correctly. Wheel over
+  Search/Tags is not swallowed; card clicks still paste exactly once.
 - [ ] NSWorkspace Reduce Motion removes translations; VoiceOver controls have
   meaningful names.
 - [ ] Inspect the signed Universal app from GitHub Actions. Automated build

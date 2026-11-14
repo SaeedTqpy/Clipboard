@@ -32,6 +32,7 @@ struct ClipboardPanelView: View {
     let onPastePlain: (ClipItem) -> Void
     let onPasteNext: () -> Void
     let onDensityChange: (ClipboardShelfDensity) -> Void
+    var carouselWheelRouter: ClipboardCarouselWheelRouter? = nil
 
     @FocusState private var searchFocused: Bool
     @State private var showingSettings = false
@@ -43,6 +44,9 @@ struct ClipboardPanelView: View {
     @State private var creatingSnippet = false
     @State private var tagSheet: ClipboardTagSheet?
     @AppStorage("clipboard.shelfDensity") private var densityRaw = "comfortable"
+    @State private var carouselScrollPosition = ScrollPosition(idType: String.self)
+    @State private var carouselScrollMetrics = ClipboardCarouselScrollMetrics()
+    @State private var pendingCarouselWheelOffset: CGFloat?
 
     private var effectiveDensity: ClipboardShelfDensity {
         let preferred = ClipboardShelfDensity(rawValue: densityRaw) ?? .comfortable
@@ -470,66 +474,112 @@ struct ClipboardPanelView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    LazyHStack(alignment: .center, spacing: effectiveDensity.cardSpacing) {
-                        ForEach(model.clips) { item in
-                            ClipCard(
-                                item: item,
-                                density: effectiveDensity,
-                                isSelected: item.id == model.selectedClipID,
-                                thumbnailSource: model.thumbnailSource(for: item),
-                                onCopy: { _ = model.copy(item) },
-                                onPaste: { onPaste(item) },
-                                onPastePlain: { onPastePlain(item) },
-                                onPin: { model.togglePinned(item) },
-                                onQueue: { model.addToPasteStack(item) },
-                                onDelete: { model.delete(item) },
-                                onEdit: { editingClip = item },
-                                onSaveSnippet: {
-                                    model.saveAsSnippet(
-                                        item, title: item.displayName ?? item.preview
-                                    )
-                                },
-                                onCopyRecognizedText: {
-                                    model.copyRecognizedText(item)
-                                },
-                                onPrimaryClick: {
-                                    switch presentation.cardTapBehavior {
-                                    case .pasteToPreviousApp: onPaste(item)
-                                    case .selectForManagement:
-                                        model.selectedClipID = item.id
-                                    }
-                                },
-                                primaryClickPastes: presentation == .shelf,
-                                tags: model.tags,
-                                onApplyTag: { tag in model.attachTag(tag, to: item) },
-                                onRemoveTag: { id in model.detachTag(id, from: item) },
-                                onCreateTag: { tagSheet = .create(item) },
-                                collections: model.collections,
-                                onMove: { name in model.move(item, toCollection: name) },
-                                onNewCollection: {
-                                    newCollectionItem = item
-                                    newCollectionName = ""
-                                    showingCollectionAlert = true
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .center, spacing: effectiveDensity.cardSpacing) {
+                    ForEach(model.clips) { item in
+                        ClipCard(
+                            item: item,
+                            density: effectiveDensity,
+                            isSelected: item.id == model.selectedClipID,
+                            thumbnailSource: model.thumbnailSource(for: item),
+                            onCopy: { _ = model.copy(item) },
+                            onPaste: { onPaste(item) },
+                            onPastePlain: { onPastePlain(item) },
+                            onPin: { model.togglePinned(item) },
+                            onQueue: { model.addToPasteStack(item) },
+                            onDelete: { model.delete(item) },
+                            onEdit: { editingClip = item },
+                            onSaveSnippet: {
+                                model.saveAsSnippet(
+                                    item, title: item.displayName ?? item.preview
+                                )
+                            },
+                            onCopyRecognizedText: {
+                                model.copyRecognizedText(item)
+                            },
+                            onPrimaryClick: {
+                                switch presentation.cardTapBehavior {
+                                case .pasteToPreviousApp: onPaste(item)
+                                case .selectForManagement:
+                                    model.selectedClipID = item.id
                                 }
-                            )
-                            .id(item.id)
-                        }
+                            },
+                            primaryClickPastes: presentation == .shelf,
+                            tags: model.tags,
+                            onApplyTag: { tag in model.attachTag(tag, to: item) },
+                            onRemoveTag: { id in model.detachTag(id, from: item) },
+                            onCreateTag: { tagSheet = .create(item) },
+                            collections: model.collections,
+                            onMove: { name in model.move(item, toCollection: name) },
+                            onNewCollection: {
+                                newCollectionItem = item
+                                newCollectionName = ""
+                                showingCollectionAlert = true
+                            }
+                        )
+                        .id(item.id)
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 11)
                 }
-                .scrollIndicators(.hidden)
-                .onChange(of: model.selectedClipID) { _, id in
-                    if let id {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            proxy.scrollTo(id, anchor: .center)
-                        }
-                    }
+                .scrollTargetLayout()
+                .padding(.horizontal, 4)
+                .padding(.vertical, 11)
+            }
+            .scrollIndicators(.hidden)
+            // A passive NSView marks the full carousel viewport in window
+            // coordinates, including spaces between LazyHStack cards.
+            .background(ClipboardCarouselWheelProbe(router: carouselWheelRouter))
+            .scrollPosition($carouselScrollPosition)
+            .onScrollGeometryChange(for: ClipboardCarouselScrollMetrics.self) { geometry in
+                ClipboardCarouselScrollMetrics(
+                    offset: geometry.contentOffset.x,
+                    contentWidth: geometry.contentSize.width,
+                    viewportWidth: geometry.containerSize.width
+                )
+            } action: { _, metrics in
+                carouselScrollMetrics = metrics
+                if let target = pendingCarouselWheelOffset,
+                   abs(metrics.offset - target) < 1 {
+                    pendingCarouselWheelOffset = nil
                 }
             }
+            .onAppear {
+                carouselWheelRouter?.onScroll = { displacement in
+                    scrollCarousel(by: displacement)
+                }
+            }
+            .onDisappear {
+                carouselWheelRouter?.onScroll = nil
+                pendingCarouselWheelOffset = nil
+            }
+            .onChange(of: model.selectedClipID) { _, id in
+                guard let id else { return }
+                pendingCarouselWheelOffset = nil
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    carouselScrollPosition.scrollTo(id: id, anchor: .center)
+                }
+            }
+            .onChange(of: effectiveDensity) { _, _ in
+                pendingCarouselWheelOffset = nil
+            }
+            .onChange(of: model.clips.count) { _, _ in
+                pendingCarouselWheelOffset = nil
+            }
         }
+    }
+
+    /// Keyboard-wheel and trackpad deltas share the same real SwiftUI
+    /// horizontal scroll position; selected-card keyboard navigation remains.
+    private func scrollCarousel(by displacement: CGFloat) {
+        let start = pendingCarouselWheelOffset ?? carouselScrollMetrics.offset
+        let next = ClipboardCarouselWheelPolicy.offset(
+            from: start,
+            by: displacement,
+            contentWidth: carouselScrollMetrics.contentWidth,
+            viewportWidth: carouselScrollMetrics.viewportWidth
+        )
+        guard abs(next - start) > 0.001 else { return }
+        pendingCarouselWheelOffset = next
+        carouselScrollPosition.scrollTo(x: next)
     }
 
     private var footer: some View {

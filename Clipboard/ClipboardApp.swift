@@ -31,14 +31,29 @@ private enum ClipboardPanelNavigation {
     case earlier, later, paste, pastePlain, togglePin, delete, quick(Int)
 }
 
+/// The SwiftUI background is translucent. AppKit must still hit-test the
+/// entire panel so scroll events over card gaps aren't sent to the app behind.
+private final class ClipboardShelfHostingView: NSHostingView<ClipboardPanelView> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        if let target = super.hitTest(point) { return target }
+        let local = convert(point, from: superview)
+        return bounds.contains(local) ? self : nil
+    }
+}
+
 private final class ClipboardFloatingPanel: NSPanel {
     var navigationHandler: ((ClipboardPanelNavigation) -> Bool)?
+    var carouselWheelRouter: ClipboardCarouselWheelRouter?
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
     /// NSPanel intercepts navigation before NSTextField consumes Return/arrow keys.
     /// Left/right are left available for cursor editing in the search field.
     override func sendEvent(_ event: NSEvent) {
+        if event.type == .scrollWheel,
+           carouselWheelRouter?.route(event, in: self) == true {
+            return
+        }
         guard event.type == .keyDown, attachedSheet == nil else {
             super.sendEvent(event)
             return
@@ -228,7 +243,9 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
         panel.navigationHandler = { [weak self] action in
             self?.handleNavigation(action) ?? false
         }
-        panel.contentView = NSHostingView(rootView: ClipboardPanelView(
+        let wheelRouter = ClipboardCarouselWheelRouter()
+        panel.carouselWheelRouter = wheelRouter
+        panel.contentView = ClipboardShelfHostingView(rootView: ClipboardPanelView(
             model: model,
             presentation: .shelf,
             onDismiss: { [weak self] in self?.hidePanel() },
@@ -237,7 +254,8 @@ final class ClipboardAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegat
             onPasteNext: { [weak self] in self?.pasteStackNext() },
             onDensityChange: { [weak self] density in
                 self?.resizeVisibleShelf(to: density)
-            }
+            },
+            carouselWheelRouter: wheelRouter
         ))
         self.panel = panel
     }
